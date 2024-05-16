@@ -10,25 +10,19 @@ import { getNetworkDetails as getFreighterNetwork } from '@stellar/freighter-api
 import {
   BASE_FEE,
   Contract,
-  Horizon,
   Operation,
   SorobanRpc,
   Transaction,
   TransactionBuilder,
   nativeToScVal,
+  scValToBigInt,
   xdr,
 } from '@stellar/stellar-sdk';
 import React, { useContext, useEffect, useState } from 'react';
 import { useLocalStorageState } from './index';
-import { ContractErrorType, parseError } from '../utils/response_parser';
-import { BootstrapConfig } from '../types';
-
-export interface Network {
-  rpc: string;
-  passphrase: string;
-  maxConcurrentRequests?: number;
-  opts?: Horizon.Server.Options;
-}
+import { ContractErrorType, parseError } from '../utils/responseParser';
+import { BootstrapParams } from '../types';
+import { Network, getNetwork, getRpc } from '../utils/rpc';
 
 export interface IWalletContext {
   connected: boolean;
@@ -38,18 +32,21 @@ export interface IWalletContext {
   lastTxFailure: string | undefined;
   txType: TxType;
   walletId: string | undefined;
-
   isLoading: boolean;
   connect: () => Promise<void>;
   disconnect: () => void;
   clearLastTx: () => void;
   restore: (sim: SorobanRpc.Api.SimulateTransactionRestoreResponse) => Promise<void>;
-  createBootstrap: (bootstrapperId: string, config: BootstrapConfig) => void;
+  simulateOperation: (
+    operation: xdr.Operation
+  ) => Promise<SorobanRpc.Api.SimulateTransactionResponse>;
+  createBootstrap: (bootstrapperId: string, params: BootstrapParams) => void;
   joinBootstrap: (bootstrapperId: string, id: number, amount: bigint) => void;
   exitBootstrap: (bootstrapperId: string, id: number, amount: bigint) => void;
   closeBootstrap: (bootstrapperId: string, id: number) => void;
   claimBootstrap: (bootstrapperId: string, id: number) => void;
   refundBootstrap: (bootstrapperId: string, id: number) => void;
+  fetchBalance: (tokenId: string, userId: string) => Promise<BigInt | undefined>;
   getNetworkDetails(): Promise<Network>;
 }
 
@@ -69,16 +66,9 @@ export enum TxType {
   PREREQ,
 }
 
-const WalletContext = React.createContext<IWalletContext | undefined>(undefined);
+export const WalletContext = React.createContext<IWalletContext | undefined>(undefined);
 
 export const WalletProvider = ({ children = null as any }): JSX.Element => {
-  const [network] = useState<Network>({
-    rpc: 'http://localhost:8000/soroban/rpc',
-    passphrase: 'Standalone Network ; February 2017',
-    opts: { allowHttp: true },
-  });
-  const [rpc] = useState<SorobanRpc.Server>(new SorobanRpc.Server(network.rpc, network.opts));
-
   const [connected, setConnected] = useState<boolean>(false);
   const [autoConnect, setAutoConnect] = useLocalStorageState('autoConnectWallet', 'false');
   const [loadingSim, setLoadingSim] = useState<boolean>(false);
@@ -89,6 +79,8 @@ export const WalletProvider = ({ children = null as any }): JSX.Element => {
   // wallet state
   const [walletAddress, setWalletAddress] = useState<string>('');
 
+  const rpc = getRpc();
+  const network = getNetwork();
   const walletKit: StellarWalletsKit = new StellarWalletsKit({
     network: network.passphrase as WalletNetwork,
     selectedWalletId: autoConnect !== undefined && autoConnect !== 'false' ? autoConnect : XBULL_ID,
@@ -269,7 +261,6 @@ export const WalletProvider = ({ children = null as any }): JSX.Element => {
         },
       }).addOperation(operation);
       const transaction = tx_builder.build();
-      console.log(transaction.toXDR());
       const simResponse = await simulateOperation(operation);
       if (SorobanRpc.Api.isSimulationError(simResponse)) {
         console.error('Failed simulating transaction: ', simResponse);
@@ -311,7 +302,7 @@ export const WalletProvider = ({ children = null as any }): JSX.Element => {
     }
   }
 
-  async function createBootstrap(bootstrapId: string, config: BootstrapConfig) {
+  async function createBootstrap(bootstrapId: string, params: BootstrapParams) {
     let bootstrapper = new Contract(bootstrapId);
     let op = bootstrapper.call(
       'bootstrap',
@@ -319,30 +310,29 @@ export const WalletProvider = ({ children = null as any }): JSX.Element => {
         xdr.ScVal.scvMap([
           new xdr.ScMapEntry({
             key: nativeToScVal('amount', { type: 'symbol' }),
-            val: nativeToScVal(config.amount, { type: 'i128' }),
+            val: nativeToScVal(params.amount, { type: 'i128' }),
           }),
           new xdr.ScMapEntry({
             key: nativeToScVal('bootstrapper', { type: 'symbol' }),
-            val: nativeToScVal(config.bootstrapper, { type: 'address' }),
+            val: nativeToScVal(params.bootstrapper, { type: 'address' }),
           }),
           new xdr.ScMapEntry({
             key: nativeToScVal('close_ledger', { type: 'symbol' }),
-            val: nativeToScVal(config.close_ledger, { type: 'u32' }),
+            val: nativeToScVal(params.close_ledger, { type: 'u32' }),
           }),
           new xdr.ScMapEntry({
             key: nativeToScVal('pair_min', { type: 'symbol' }),
-            val: nativeToScVal(config.pair_min, { type: 'i128' }),
+            val: nativeToScVal(params.pair_min, { type: 'i128' }),
           }),
           new xdr.ScMapEntry({
             key: nativeToScVal('pool', { type: 'symbol' }),
-            val: nativeToScVal(config.pool, { type: 'address' }),
+            val: nativeToScVal(params.pool, { type: 'address' }),
           }),
           new xdr.ScMapEntry({
             key: nativeToScVal('token_index', { type: 'symbol' }),
-            val: nativeToScVal(config.token_index, { type: 'u32' }),
+            val: nativeToScVal(params.token_index, { type: 'u32' }),
           }),
         ]),
-        // nativeToScVal(config),
       ]
     );
     await invokeSorobanOperation(op);
@@ -412,6 +402,19 @@ export const WalletProvider = ({ children = null as any }): JSX.Element => {
     await invokeSorobanOperation(op);
   }
 
+  async function fetchBalance(tokenId: string, userId: string): Promise<BigInt | undefined> {
+    let contract = new Contract(tokenId);
+    let op = contract.call('balance', ...[nativeToScVal(userId, { type: 'address' })]);
+    let sim = await simulateOperation(op);
+    if (SorobanRpc.Api.isSimulationSuccess(sim) && sim.result?.retval != undefined) {
+      let balance = scValToBigInt(sim.result.retval);
+      return balance;
+    } else {
+      console.error('Failed to load balance: ', sim);
+      return undefined;
+    }
+  }
+
   return (
     <WalletContext.Provider
       value={{
@@ -427,6 +430,7 @@ export const WalletProvider = ({ children = null as any }): JSX.Element => {
         disconnect,
         clearLastTx,
         restore,
+        simulateOperation,
         createBootstrap,
         joinBootstrap,
         exitBootstrap,
@@ -434,6 +438,7 @@ export const WalletProvider = ({ children = null as any }): JSX.Element => {
         claimBootstrap,
         refundBootstrap,
         getNetworkDetails,
+        fetchBalance,
       }}
     >
       {children}

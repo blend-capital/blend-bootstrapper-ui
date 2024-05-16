@@ -6,7 +6,6 @@ export const TxStatusOverlay: React.FC = () => {
   if (txStatus === TxStatus.NONE) {
     return <></>;
   }
-  console.log('TxStatusOverlay', txStatus, lastTxFailure);
   return (
     <div
       style={{

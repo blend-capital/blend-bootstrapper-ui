@@ -68,10 +68,8 @@ export function parseError(
     | SorobanRpc.Api.SimulateTransactionErrorResponse
 ): ContractError {
   // Simulation Error
-  console.log(errorResponse);
   if ('id' in errorResponse) {
     const match = errorResponse.error.match(/Error\(Contract, #(\d+)\)/);
-    console.log('match', match);
     if (match) {
       const errorValue = parseInt(match[1], 10);
       if (errorValue in ContractErrorType)
