@@ -34,7 +34,7 @@ export function ActionOptions() {
             onChange={(e) => setBootstrapperId(e.target.value)}
           />{' '}
         </div>
-        <div style={{ display: 'flex', justifyContent: 'center', padding: '40px' }}>
+        <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', padding: '40px' }}>
           <SelectableInput inputName={'New Bootstrap'}></SelectableInput>
           <SelectableInput inputName={'Join Bootstrap'}></SelectableInput>
           <SelectableInput inputName={'Exit Bootstrap'}></SelectableInput>

@@ -74,7 +74,7 @@ export function NewBootstrap() {
         style={{
           display: 'flex',
           justifyContent: 'flex-start',
-          width: '50%',
+          width: '100%',
           margin: '10px 0',
         }}
       >
@@ -92,7 +92,7 @@ export function NewBootstrap() {
         style={{
           display: 'flex',
           justifyContent: 'flex-start',
-          width: '50%',
+          width: '100%',
           margin: '10px 0',
         }}
       >
@@ -112,7 +112,7 @@ export function NewBootstrap() {
         style={{
           display: 'flex',
           justifyContent: 'flex-start',
-          width: '50%',
+          width: '100%',
           margin: '10px 0',
         }}
       >
@@ -130,7 +130,7 @@ export function NewBootstrap() {
         style={{
           display: 'flex',
           justifyContent: 'flex-start',
-          width: '50%',
+          width: '100%',
           margin: '10px 0',
         }}
       >
@@ -150,7 +150,7 @@ export function NewBootstrap() {
         style={{
           display: 'flex',
           justifyContent: 'flex-start',
-          width: '50%',
+          width: '100%',
           margin: '10px 0',
         }}
       >

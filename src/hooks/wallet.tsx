@@ -5,6 +5,8 @@ import {
   WalletNetwork,
   XBULL_ID,
   xBullModule,
+  LobstrModule,
+  AlbedoModule,
 } from '@creit.tech/stellar-wallets-kit/build';
 import { getNetworkDetails as getFreighterNetwork } from '@stellar/freighter-api';
 import {
@@ -84,7 +86,7 @@ export const WalletProvider = ({ children = null as any }): JSX.Element => {
   const walletKit: StellarWalletsKit = new StellarWalletsKit({
     network: network.passphrase as WalletNetwork,
     selectedWalletId: autoConnect !== undefined && autoConnect !== 'false' ? autoConnect : XBULL_ID,
-    modules: [new xBullModule(), new FreighterModule()],
+    modules: [new xBullModule(), new FreighterModule(), new LobstrModule(), new AlbedoModule()],
   });
 
   useEffect(() => {
@@ -92,7 +94,7 @@ export const WalletProvider = ({ children = null as any }): JSX.Element => {
       // @dev: timeout ensures chrome has the ability to load extensions
       setTimeout(() => {
         handleSetWalletAddress();
-      }, 500);
+      }, 1000);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [autoConnect]);
