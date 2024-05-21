@@ -28,7 +28,7 @@ export function ClaimBootstrap() {
         style={{
           display: 'flex',
           justifyContent: 'flex-start',
-          width: '50%',
+          width: '100%',
           margin: '10px 0',
         }}
       >

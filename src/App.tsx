@@ -1,24 +1,34 @@
 import './App.css';
 import { useWallet } from './hooks/wallet';
-import { ActionOptions, DisplayAction } from './components/Actions';
+import { ActionOptions, DisplayAction } from './components/actions';
 import { TxStatusOverlay } from './components/TxStatusOverlay';
 
 function App() {
-  const { connect } = useWallet();
+  const { connect, connected, disconnect } = useWallet();
   return (
     <div
       style={{
         justifyContent: 'center',
         display: 'flex',
+        flexWrap: 'wrap',
         flexDirection: 'column',
       }}
     >
+      {connected ? (
       <button
-        style={{ display: 'flex', width: '100px', alignSelf: 'flex-end' }}
+        style={{ color: '#00994F', display: 'flex', justifyContent: 'center', width: '150px', alignSelf: 'flex-end' }}
+        onClick={() => disconnect()}
+      >
+        Connected
+      </button>
+      ):(
+        <button
+        style={{ display: 'flex', justifyContent: 'center', width: '150px', alignSelf: 'flex-end' }}
         onClick={() => connect()}
       >
         Connect
       </button>
+      )}
       <h1>Backstop Bootstrapper</h1>
 
       <ActionOptions />
