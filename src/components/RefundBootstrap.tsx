@@ -1,10 +1,11 @@
 import { useBootstrapper } from '../hooks/bootstrapContext';
 import { useWallet } from '../hooks/wallet';
 import { BootstrapData } from './BootstrapData';
-import Box from './Box';
+import Box from './common/Box';
 
 export function RefundBootstrap() {
-  const { bootstrapperId, bootstrap, userDeposit, id, setId } = useBootstrapper();
+  const { bootstrapperId, bootstrap, userDeposit, id, setId, bootstrapperConfig } =
+    useBootstrapper();
 
   const { refundBootstrap, connected } = useWallet();
 
@@ -23,7 +24,7 @@ export function RefundBootstrap() {
       }}
     >
       <h2>Refund Bootstrap</h2>
-      {bootstrap ? <BootstrapData bootstrap={bootstrap} /> : <></>}
+      <BootstrapData />
       {userDeposit && id != undefined && connected ? (
         <Box>
           <div

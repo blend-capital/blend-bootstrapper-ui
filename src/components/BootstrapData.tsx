@@ -1,58 +1,71 @@
 import { useBootstrapper } from '../hooks/bootstrapContext';
-import { Bootstrap, BootstrapStatus } from '../types';
-import Box from './Box';
+import { BootstrapStatus } from '../types';
+import Box from './common/Box';
+import Container from './common/Container';
+import StackedText from './common/StackedText';
 
-type BootstrapDataProps = {
-  bootstrap: Bootstrap;
-};
-
-export function BootstrapData({ bootstrap }: BootstrapDataProps) {
-  const { bootstrapperId, bootstrapperConfig, id } = useBootstrapper();
-  if (bootstrapperId) {
-    if (bootstrap && bootstrapperConfig && id) {
-      return (
-        <div>
-          <h3>Bootstrap Data</h3>
-          <Box>
-            <p>Status: {BootstrapStatus[bootstrap.status]}</p>
-            <div
-              style={{
-                display: 'flex',
-                flexDirection: 'row',
-                justifyContent: 'center',
-              }}
-            >
-              <p style={{ paddingLeft: '10px', paddingRight: '10px' }}>
-                Pair Token Amount: {bootstrap.data.pair_amount.toString()}
-              </p>
-              <p style={{ paddingLeft: '10px', paddingRight: '10px' }}>
-                Bootstrap Amount: {bootstrap.data.bootstrap_amount.toString()}
-              </p>
-              <p style={{ paddingLeft: '10px', paddingRight: '10px' }}>
-                Pair Minimum Amount: {Number(bootstrap.config.pair_min)}
-              </p>
-            </div>
-            <p>Close Ledger: {Number(bootstrap.config.close_ledger)}</p>
-          </Box>
-
-          <h3>Bootstrap Config</h3>
-          <Box>
-            <div>
-              <p>Pool Id: {bootstrap.config.pool}</p>
-              <p>
-                Bootstrap Token Address:{' '}
-                {bootstrapperConfig.cometTokenData[bootstrap.config.token_index].address}
-              </p>
-              <p>
-                Pair Token Address:{' '}
-                {bootstrapperConfig.cometTokenData[1 ^ bootstrap.config.token_index].address}
-              </p>
-            </div>
-          </Box>
-        </div>
-      );
-    }
+export function BootstrapData() {
+  const { id, bootstrap, bootstrapperConfig } = useBootstrapper();
+  if (!bootstrap || !bootstrapperConfig || id == undefined) {
     return <></>;
   }
-  return <></>;
+  return (
+    <Container sx={{ display: 'flex', flexDirection: 'column', flexWrap: 'wrap' }}>
+      <h3>Bootstrap Data</h3>
+      <Box sx={{ flexDirection: 'column' }}>
+        <Container
+          sx={{
+            display: 'flex',
+            flexDirection: 'row',
+            justifyContent: 'center',
+            flexWrap: 'wrap',
+          }}
+        >
+          <p style={{ paddingLeft: '10px', paddingRight: '10px' }}>
+            Status: {BootstrapStatus[bootstrap.status]}
+          </p>
+          <p style={{ paddingLeft: '10px', paddingRight: '10px' }}>
+            Close Ledger: {Number(bootstrap.config.close_ledger)}
+          </p>
+        </Container>
+        <Container
+          sx={{
+            display: 'flex',
+            flexDirection: 'row',
+            justifyContent: 'center',
+            flexWrap: 'wrap',
+          }}
+        >
+          <p style={{ paddingLeft: '10px', paddingRight: '10px' }}>
+            Pair Token Amount: {bootstrap.data.pair_amount.toString()}
+          </p>
+          <p style={{ paddingLeft: '10px', paddingRight: '10px' }}>
+            Bootstrap Amount: {bootstrap.data.bootstrap_amount.toString()}
+          </p>
+          <p style={{ paddingLeft: '10px', paddingRight: '10px' }}>
+            Pair Minimum Amount: {Number(bootstrap.config.pair_min)}
+          </p>
+        </Container>
+      </Box>
+
+      <h3>Bootstrap Config</h3>
+      <Box sx={{ flexWrap: 'wrap', overflowWrap: 'break-word', flexDirection: 'column' }}>
+        <StackedText
+          title="Pool Id:"
+          text={bootstrap.config.pool}
+          sx={{ justifyContent: 'center', flexDirection: 'column' }}
+        />
+        <StackedText
+          title="Bootstrap Token Address"
+          text={bootstrapperConfig.cometTokenData[bootstrap.config.token_index].address}
+          sx={{ justifyContent: 'center', flexDirection: 'column' }}
+        />
+        <StackedText
+          title="Pair Token Address"
+          text={bootstrapperConfig.cometTokenData[1 ^ bootstrap.config.token_index].address}
+          sx={{ justifyContent: 'center', flexDirection: 'column' }}
+        />
+      </Box>
+    </Container>
+  );
 }

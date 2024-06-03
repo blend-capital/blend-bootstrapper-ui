@@ -1,16 +1,16 @@
 import { useBootstrapper } from '../hooks/bootstrapContext';
-import Box from './Box';
-import { useWallet } from '../hooks/wallet';
+import Box from './common/Box';
+import Container from './common/Container';
+import StackedText from './common/StackedText';
 
 export const CometBalances = () => {
-  const { connected } = useWallet();
-  const { cometBalances, bootstrap, bootstrapperConfig } = useBootstrapper();
+  const { cometBalances, bootstrap, bootstrapperConfig, id } = useBootstrapper();
 
   if (
-    !connected ||
     cometBalances == undefined ||
     bootstrapperConfig == undefined ||
-    bootstrap == undefined
+    bootstrap == undefined ||
+    id == undefined
   ) {
     return <></>;
   }
@@ -31,40 +31,26 @@ export const CometBalances = () => {
     (bootstrapTokenData.weight / 100);
 
   return (
-    <>
+    <Container sx={{ justifyContent: 'center', flexDirection: 'column' }}>
       <h3>Spot Prices</h3>
-      <div
-        style={{
-          display: 'flex',
+      <Box
+        sx={{
           flexDirection: 'row',
           justifyContent: 'center',
           alignItems: 'center',
         }}
       >
-        <Box
-          sx={{
-            display: 'flex',
-            flexDirection: 'row',
-            justifyContent: 'center',
-            alignItems: 'center',
-            whiteSpace: 'nowrap',
-          }}
-        >
-          <p style={{ marginRight: '10px' }}>Comet Spot Price:</p> {cometSpotPrice.toString()}
-        </Box>
-        <Box
-          sx={{
-            display: 'flex',
-            flexDirection: 'row',
-            justifyContent: 'center',
-            alignItems: 'center',
-            whiteSpace: 'nowrap',
-          }}
-        >
-          <p style={{ marginRight: '10px' }}>Bootstrap Spot Price:</p>{' '}
-          {bootstrapSpotPrice.toFixed(7)}
-        </Box>
-      </div>
-    </>
+        <StackedText
+          title="Comet Spot Price"
+          text={cometSpotPrice.toFixed(7)}
+          sx={{ flexDirection: 'column' }}
+        />
+        <StackedText
+          title="Bootstrap Spot Price"
+          text={bootstrapSpotPrice.toFixed(7)}
+          sx={{ flexDirection: 'column' }}
+        />
+      </Box>
+    </Container>
   );
 };

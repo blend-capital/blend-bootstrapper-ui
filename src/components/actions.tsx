@@ -1,6 +1,6 @@
-import { SelectableInput } from './SelectableInput';
+import { SelectableInput } from './common/SelectableInput';
 import { useBootstrapper } from '../hooks/bootstrapContext';
-import Box from './Box';
+import Box from './common/Box';
 import { NewBootstrap } from './NewBootstrap';
 import { JoinBootstrap } from './JoinBootstrap';
 import { ExitBootstrap } from './ExitBootstrap';
@@ -34,7 +34,9 @@ export function ActionOptions() {
             onChange={(e) => setBootstrapperId(e.target.value)}
           />{' '}
         </div>
-        <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', padding: '40px' }}>
+        <div
+          style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', padding: '40px' }}
+        >
           <SelectableInput inputName={'New Bootstrap'}></SelectableInput>
           <SelectableInput inputName={'Join Bootstrap'}></SelectableInput>
           <SelectableInput inputName={'Exit Bootstrap'}></SelectableInput>
@@ -53,37 +55,37 @@ export function DisplayAction() {
     return <></>;
   } else if (selectedOption == 'New Bootstrap') {
     return (
-      <Box sx={{ flexDirection: 'column' }}>
+      <Box sx={{ flexDirection: 'column', flexWrap: 'wrap' }}>
         <NewBootstrap />
       </Box>
     );
   } else if (selectedOption == 'Join Bootstrap') {
     return (
-      <Box sx={{ flexDirection: 'column' }}>
+      <Box sx={{ flexDirection: 'column', flexWrap: 'wrap' }}>
         <JoinBootstrap />
       </Box>
     );
   } else if (selectedOption == 'Exit Bootstrap') {
     return (
-      <Box sx={{ flexDirection: 'column' }}>
+      <Box sx={{ flexDirection: 'column', flexWrap: 'wrap' }}>
         <ExitBootstrap />
       </Box>
     );
   } else if (selectedOption == 'Close Bootstrap') {
     return (
-      <Box sx={{ flexDirection: 'column' }}>
+      <Box sx={{ flexDirection: 'column', flexWrap: 'wrap' }}>
         <CloseBootstrap />
       </Box>
     );
   } else if (selectedOption == 'Claim Bootstrap') {
     return (
-      <Box sx={{ flexDirection: 'column' }}>
+      <Box sx={{ flexDirection: 'column', flexWrap: 'wrap' }}>
         <ClaimBootstrap />
       </Box>
     );
   } else if (selectedOption == 'Refund Bootstrap') {
     return (
-      <Box sx={{ flexDirection: 'column' }}>
+      <Box sx={{ flexDirection: 'column', flexWrap: 'wrap' }}>
         <RefundBootstrap />
       </Box>
     );

@@ -1,7 +1,9 @@
 import { useEffect, useState } from 'react';
 import { useBootstrapper } from '../hooks/bootstrapContext';
-import Box from './Box';
+import Box from './common/Box';
 import { useWallet } from '../hooks/wallet';
+import Container from './common/Container';
+import StackedText from './common/StackedText';
 
 export const UserBalances = () => {
   const { fetchBalance, walletAddress, connected } = useWallet();
@@ -18,49 +20,31 @@ export const UserBalances = () => {
     }
   }, [connected, bootstrap, bootstrapperConfig, id]);
 
-  if (
-    !connected ||
-    walletBalance == undefined ||
-    userDeposit == undefined ||
-    bootstrapperConfig == undefined ||
-    id == undefined
-  ) {
+  if (!connected || bootstrapperConfig == undefined || id == undefined) {
     return <></>;
   }
   return (
-    <div style={{ flexDirection: 'column', justifyContent: 'center', width: '400px' }}>
-      <h3>User Data</h3>
-      <div
-        style={{
+    <Container sx={{ flexDirection: 'column', justifyContent: 'center', width: '400px' }}>
+      <h3>User Balances</h3>
+      <Box
+        sx={{
           display: 'flex',
           flexDirection: 'row',
           justifyContent: 'center',
           alignItems: 'center',
         }}
       >
-        <Box
-          sx={{
-            display: 'flex',
-            flexDirection: 'row',
-            justifyContent: 'center',
-            alignItems: 'center',
-            whiteSpace: 'nowrap',
-          }}
-        >
-          <p style={{ marginRight: '10px' }}>Deposit Amount:</p> {Number(userDeposit.amount)}
-        </Box>
-        <Box
-          sx={{
-            display: 'flex',
-            flexDirection: 'row',
-            justifyContent: 'center',
-            alignItems: 'center',
-            whiteSpace: 'nowrap',
-          }}
-        >
-          <p style={{ marginRight: '10px' }}>Pair Token Wallet Balance:</p> {Number(walletBalance)}
-        </Box>
-      </div>
-    </div>
+        <StackedText
+          title="Deposit Amount"
+          text={userDeposit ? userDeposit.amount.toString() : '0'}
+          sx={{ flexDirection: 'column' }}
+        />
+        <StackedText
+          title="Pair Token Wallet Balance"
+          text={walletBalance ? walletBalance.toString() : '0'}
+          sx={{ flexDirection: 'column' }}
+        />
+      </Box>
+    </Container>
   );
 };

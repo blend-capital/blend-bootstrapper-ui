@@ -143,7 +143,6 @@ export const BootstrapProvider = ({ children = null as any }): JSX.Element => {
     if (bootstrapperId == undefined) {
       return undefined;
     }
-    console.log('fetching user deposit');
     const configLedgerKey = xdr.LedgerKey.contractData(
       new xdr.LedgerKeyContractData({
         contract: Address.fromString(bootstrapperId).toScAddress(),
@@ -165,7 +164,9 @@ export const BootstrapProvider = ({ children = null as any }): JSX.Element => {
     );
     const responseEntries = await rpc.getLedgerEntries(...[configLedgerKey]);
     let entry = responseEntries.entries[0];
-    console.log(scValToNative(entry.val.contractData().val()));
+    if (entry == undefined) {
+      return undefined;
+    }
     return scValToNative(entry.val.contractData().val());
   };
 

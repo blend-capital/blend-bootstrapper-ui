@@ -22,7 +22,7 @@ export function ClaimBootstrap() {
       }}
     >
       <h2>Claim Bootstrap</h2>
-      {bootstrap ? <BootstrapData bootstrap={bootstrap} /> : <></>}
+      {bootstrap ? <BootstrapData /> : <></>}
 
       <div
         style={{
