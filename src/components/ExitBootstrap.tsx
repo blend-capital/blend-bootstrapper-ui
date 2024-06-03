@@ -26,7 +26,7 @@ export function ExitBootstrap() {
       }}
     >
       <h2>Exit Bootstrap</h2>
-      {bootstrap ? <BootstrapData bootstrap={bootstrap} /> : <></>}
+      <BootstrapData />
       <UserBalances />
       <div
         style={{

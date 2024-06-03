@@ -1,4 +1,4 @@
-import { useBootstrapper } from '../hooks/bootstrapContext';
+import { useBootstrapper } from '../../hooks/bootstrapContext';
 export function SelectableInput({ inputName }: { inputName: string }) {
   const { bootstrapperId, selectedOption, setSelectedOption, setId } = useBootstrapper();
 

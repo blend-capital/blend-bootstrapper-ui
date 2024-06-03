@@ -22,7 +22,7 @@ export function CloseBootstrap() {
       }}
     >
       <h2>Close Bootstrap</h2>
-      {bootstrap ? <BootstrapData bootstrap={bootstrap} /> : <></>}
+      {bootstrap ? <BootstrapData /> : <></>}
       <div
         style={{
           display: 'flex',

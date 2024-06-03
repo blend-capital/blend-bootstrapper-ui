@@ -1,7 +1,9 @@
 import { useState } from 'react';
 import { useBootstrapper } from '../hooks/bootstrapContext';
 import { useWallet } from '../hooks/wallet';
-import Box from './Box';
+import Box from './common/Box';
+import Container from './common/Container';
+import StackedText from './common/StackedText';
 
 export function NewBootstrap() {
   const { bootstrapperId, bootstrapperConfig } = useBootstrapper();
@@ -16,23 +18,36 @@ export function NewBootstrap() {
   function displayConfig() {
     if (bootstrapperConfig) {
       return (
-        <div>
+        <Container sx={{ justifyContent: 'center', flexDirection: 'column' }}>
           <h3>Bootstrap Config</h3>
-          <Box sx={{ flexDirection: 'column' }}>
-            <p>Backstop Id: {bootstrapperConfig.backstopId}</p>
-            <p>Backstop Token Id: {bootstrapperConfig.backstopTokenId}</p>
-            <p>Comet Token Data:</p>
+          <Box sx={{ flexDirection: 'column', flexWrap: 'wrap' }}>
+            <StackedText
+              title="Backstop Id: "
+              text={bootstrapperConfig.backstopId}
+              sx={{ justifyContent: 'center', flexDirection: 'column' }}
+            />
+            <StackedText
+              title="Backstop Token Id: "
+              text={bootstrapperConfig.backstopTokenId}
+              sx={{ justifyContent: 'center', flexDirection: 'column' }}
+            />
+
+            <h4 style={{ marginBottom: '-10px' }}>Comet Token Data: </h4>
 
             {bootstrapperConfig.cometTokenData.map((tokenData) => {
               return (
                 <div>
-                  <p>Address: {tokenData.address} </p>
-                  <p>Weight: {tokenData.weight}%</p>
+                  <StackedText
+                    title="Address:"
+                    text={tokenData.address}
+                    sx={{ justifyContent: 'center', flexDirection: 'column' }}
+                  />
+                  <p style={{ marginTop: '-10px' }}>Weight: {tokenData.weight}%</p>
                 </div>
               );
             })}
           </Box>
-        </div>
+        </Container>
       );
     }
     return <></>;
@@ -64,6 +79,7 @@ export function NewBootstrap() {
       style={{
         display: 'flex',
         flexDirection: 'column',
+        flexWrap: 'wrap',
         alignItems: 'center',
         padding: '20px',
       }}
