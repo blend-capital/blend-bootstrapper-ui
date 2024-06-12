@@ -12,6 +12,7 @@ function Box({ children, sx }: BoxProps) {
         display: 'flex',
         border: '2px solid black',
         flexWrap: 'wrap',
+        padding: '10px',
         ...sx,
       }}
     >
