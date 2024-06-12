@@ -228,10 +228,7 @@ export const BootstrapProvider = ({ children = null as any }): JSX.Element => {
     const pairTokenIndex = 1 ^ bootstrapIndex;
     const bootstrapTokenData = bootstrapperConfig.cometTokenData[bootstrapIndex];
     const pairTokenData = bootstrapperConfig.cometTokenData[pairTokenIndex];
-    const newPairAmount = Number(bootstrap.data.pair_amount) + amount;
-    if (newPairAmount <= 0) {
-      return 0;
-    }
+    const newPairAmount = Number(bootstrap.data.total_pair) + amount;
 
     const bootstrapClaimAmount =
       (Number(bootstrap.data.bootstrap_amount) / Number(cometBalances[0])) *
@@ -242,7 +239,7 @@ export const BootstrapProvider = ({ children = null as any }): JSX.Element => {
       bootstrapClaimAmount < pairClaimAmount ? bootstrapClaimAmount : pairClaimAmount;
 
     const pairJoinAmount = Number(cometBalances[1] / cometTotalSupply) * claimAmount;
-    const pairAmountLeft = newPairAmount - pairJoinAmount;
+    const pairAmountLeft = Number(bootstrap.data.pair_amount) - pairJoinAmount;
     const newCometPairBalance = Number(cometBalances[1]) + pairJoinAmount;
 
     let pairSingleSide =
@@ -262,12 +259,18 @@ export const BootstrapProvider = ({ children = null as any }): JSX.Element => {
         Number(cometTotalSupply) -
       Number(cometTotalSupply);
     claimAmount += bootstrapSingleSide;
-    console.log(claimAmount);
-    return (
-      (((claimAmount * (Number(userDeposit?.amount ?? 0n) + amount)) / newPairAmount) *
-        pairTokenData.weight) /
-      100
-    );
+    claimAmount += Number(bootstrap.data.total_backstop_tokens);
+
+    if (walletAddress == bootstrap.config.bootstrapper) {
+      return (claimAmount * bootstrapTokenData.weight) / 100;
+    } else {
+      if (newPairAmount <= 0) return 0;
+      return (
+        (((claimAmount * (Number(userDeposit?.amount ?? 0n) + amount)) / newPairAmount) *
+          pairTokenData.weight) /
+        100
+      );
+    }
   };
 
   return (

@@ -26,7 +26,6 @@ export function ClaimBootstrap() {
       claimBootstrap(bootstrapperId, id);
     }
   }
-
   useEffect(() => {
     setClaimAmount(calculateClaimAmount(0));
   }, [bootstrap, bootstrapperConfig, cometBalances, cometTotalSupply, id]);
@@ -40,7 +39,6 @@ export function ClaimBootstrap() {
     >
       <h2>Claim Bootstrap</h2>
       <BootstrapData />
-
       <LabeledInput
         label={'Bootstrap Id'}
         placeHolder={'Enter Bootstrap Id'}
