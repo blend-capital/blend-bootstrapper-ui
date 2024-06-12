@@ -1,9 +1,10 @@
-import { useState } from 'react';
+import { ChangeEvent, useState } from 'react';
 import { useBootstrapper } from '../hooks/bootstrapContext';
 import { useWallet } from '../hooks/wallet';
 import Box from './common/Box';
 import Container from './common/Container';
 import StackedText from './common/StackedText';
+import LabeledInput from './common/LabeledInput';
 
 export function NewBootstrap() {
   const { bootstrapperId, bootstrapperConfig } = useBootstrapper();
@@ -75,113 +76,56 @@ export function NewBootstrap() {
   }
 
   return (
-    <div
-      style={{
-        display: 'flex',
+    <Box
+      sx={{
         flexDirection: 'column',
-        flexWrap: 'wrap',
         alignItems: 'center',
-        padding: '20px',
+        justifyContent: 'center',
       }}
     >
       <h2>New Bootstrap</h2>
       {displayConfig()}
-      <div
-        style={{
-          display: 'flex',
-          justifyContent: 'flex-start',
-          width: '100%',
-          margin: '10px 0',
+      <LabeledInput
+        label={'Pool Id'}
+        placeHolder={'Enter Pool Address'}
+        value={poolId}
+        onChange={function (e: ChangeEvent<HTMLInputElement>): void {
+          setPoolId(e.target.value);
         }}
-      >
-        <label style={{ width: 'auto', textAlign: 'right', marginRight: '10px' }}>Pool Id: </label>
-        <input
-          type="text"
-          placeholder="Enter Pool Address"
-          style={{ flexGrow: 1 }}
-          value={poolId}
-          onChange={(e) => setPoolId(e.target.value)}
-        />
-      </div>
-
-      <div
-        style={{
-          display: 'flex',
-          justifyContent: 'flex-start',
-          width: '100%',
-          margin: '10px 0',
+      />
+      <LabeledInput
+        label={'Token Index'}
+        placeHolder={'Enter Token Index'}
+        value={tokenIndex}
+        onChange={function (e: ChangeEvent<HTMLInputElement>): void {
+          setTokenIndex(parseInt(e.target.value));
         }}
-      >
-        <label style={{ width: 'auto', textAlign: 'right', marginRight: '10px' }}>
-          Token Index
-        </label>
-        <input
-          type="text"
-          placeholder="Enter Token Index"
-          style={{ flexGrow: 1 }}
-          value={tokenIndex}
-          onChange={(e) => setTokenIndex(parseInt(e.target.value))}
-        />
-      </div>
-
-      <div
-        style={{
-          display: 'flex',
-          justifyContent: 'flex-start',
-          width: '100%',
-          margin: '10px 0',
+      />
+      <LabeledInput
+        label={'Amount'}
+        placeHolder={'Enter Bootstrap Amount'}
+        value={amount}
+        onChange={function (e: ChangeEvent<HTMLInputElement>): void {
+          setAmount(e.target.value);
         }}
-      >
-        <label style={{ width: 'auto', textAlign: 'right', marginRight: '10px' }}>Amount</label>
-        <input
-          type="text"
-          placeholder="Enter Amount"
-          style={{ flexGrow: 1 }}
-          value={amount}
-          onChange={(e) => setAmount(e.target.value)}
-        />
-      </div>
-
-      <div
-        style={{
-          display: 'flex',
-          justifyContent: 'flex-start',
-          width: '100%',
-          margin: '10px 0',
+      />
+      <LabeledInput
+        label={'Pair Minimum Amount'}
+        placeHolder={'Enter Pair Minimum Amount'}
+        value={pairMinimumAmount}
+        onChange={function (e: ChangeEvent<HTMLInputElement>): void {
+          setPairMinimumAmount(e.target.value);
         }}
-      >
-        <label style={{ width: 'auto', textAlign: 'right', marginRight: '10px' }}>
-          Pair Minimum Amount
-        </label>
-        <input
-          type="text"
-          placeholder="Enter Pair Minimum Amount"
-          style={{ flexGrow: 1 }}
-          value={pairMinimumAmount}
-          onChange={(e) => setPairMinimumAmount(e.target.value)}
-        />
-      </div>
-
-      <div
-        style={{
-          display: 'flex',
-          justifyContent: 'flex-start',
-          width: '100%',
-          margin: '10px 0',
+      />
+      <LabeledInput
+        label={'Close Ledger'}
+        placeHolder={'Enter Ledger to Close Bootstrap'}
+        value={closeLedger}
+        onChange={function (e: ChangeEvent<HTMLInputElement>): void {
+          setCloseLedger(e.target.value);
         }}
-      >
-        <label style={{ width: 'auto', textAlign: 'right', marginRight: '10px' }}>
-          Close Ledger
-        </label>
-        <input
-          type="text"
-          style={{ flexGrow: 1 }}
-          placeholder="Enter the Ledger to Close the Bootstrap"
-          value={closeLedger}
-          onChange={(e) => setCloseLedger(e.target.value)}
-        />
-      </div>
+      />
       <button onClick={() => SubmitTx()}>Submit</button>
-    </div>
+    </Box>
   );
 }

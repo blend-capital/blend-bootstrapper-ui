@@ -13,18 +13,20 @@ export const UserBalances = () => {
     if (connected && bootstrap && bootstrapperConfig) {
       let pairTokenId = bootstrapperConfig.cometTokenData[1 ^ bootstrap.config.token_index].address;
       fetchBalance(pairTokenId, walletAddress)
-        .then((balance) => setWalletBalance(Number(balance)))
+        .then((balance) => {
+          setWalletBalance(Number(balance));
+        })
         .catch((error) => console.error(error));
     } else {
       setWalletBalance(undefined);
     }
-  }, [connected, bootstrap, bootstrapperConfig, id]);
+  }, [connected, bootstrap, bootstrapperConfig, id, walletAddress]);
 
   if (!connected || bootstrapperConfig == undefined || id == undefined) {
     return <></>;
   }
   return (
-    <Container sx={{ flexDirection: 'column', justifyContent: 'center', width: '400px' }}>
+    <Container sx={{ flexDirection: 'column', justifyContent: 'center' }}>
       <h3>User Balances</h3>
       <Box
         sx={{
