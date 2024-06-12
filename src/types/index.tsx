@@ -1,12 +1,12 @@
 export interface BootstrapParams {
   /// The amount of the bootstrap token to bootstrap
-  amount: BigInt;
+  amount: bigint;
   /// The address creating the bootstrap
   bootstrapper: string;
   /// The ledger number at which the bootstrap will close
   close_ledger: number;
   /// The minimum amount of the pair token to bootstrap
-  pair_min: BigInt;
+  pair_min: bigint;
   /// The address of the pool to bootstrap
   pool: string;
   /// The index of the comet underlying token being bootstrapped
@@ -14,10 +14,10 @@ export interface BootstrapParams {
 }
 
 export interface data {
-  total_pair: BigInt;
-  total_backstop_tokens: BigInt;
-  bootstrap_amount: BigInt;
-  pair_amount: BigInt;
+  total_pair: bigint;
+  total_backstop_tokens: bigint;
+  bootstrap_amount: bigint;
+  pair_amount: bigint;
 }
 
 export enum BootstrapStatus {
@@ -46,7 +46,7 @@ export interface BootstrapperConfig {
 }
 
 export interface UserDeposit {
-  amount: BigInt;
-  claimed: BigInt;
-  refunded: BigInt;
+  amount: bigint;
+  claimed: bigint;
+  refunded: bigint;
 }

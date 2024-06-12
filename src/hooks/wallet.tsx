@@ -48,7 +48,7 @@ export interface IWalletContext {
   closeBootstrap: (bootstrapperId: string, id: number) => void;
   claimBootstrap: (bootstrapperId: string, id: number) => void;
   refundBootstrap: (bootstrapperId: string, id: number) => void;
-  fetchBalance: (tokenId: string, userId: string) => Promise<BigInt | undefined>;
+  fetchBalance: (tokenId: string, userId: string) => Promise<bigint | undefined>;
   getNetworkDetails(): Promise<Network>;
 }
 
@@ -404,7 +404,7 @@ export const WalletProvider = ({ children = null as any }): JSX.Element => {
     await invokeSorobanOperation(op);
   }
 
-  async function fetchBalance(tokenId: string, userId: string): Promise<BigInt | undefined> {
+  async function fetchBalance(tokenId: string, userId: string): Promise<bigint | undefined> {
     let contract = new Contract(tokenId);
     let op = contract.call('balance', ...[nativeToScVal(userId, { type: 'address' })]);
     let sim = await simulateOperation(op);
