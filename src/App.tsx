@@ -2,15 +2,14 @@ import './App.css';
 import { useWallet } from './hooks/wallet';
 import { ActionOptions, DisplayAction } from './components/Actions';
 import { TxStatusOverlay } from './components/TxStatusOverlay';
+import Container from './components/common/Container';
 
 function App() {
   const { connect, connected, disconnect } = useWallet();
   return (
-    <div
-      style={{
+    <Container
+      sx={{
         justifyContent: 'center',
-        display: 'flex',
-        flexWrap: 'wrap',
         flexDirection: 'column',
       }}
     >
@@ -45,7 +44,7 @@ function App() {
       <ActionOptions />
       <DisplayAction />
       <TxStatusOverlay />
-    </div>
+    </Container>
   );
 }
 

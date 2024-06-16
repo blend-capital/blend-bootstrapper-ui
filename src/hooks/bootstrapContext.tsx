@@ -3,6 +3,7 @@ import {
   Contract,
   SorobanRpc,
   nativeToScVal,
+  scValToBigInt,
   scValToNative,
   xdr,
 } from '@stellar/stellar-sdk';
@@ -19,14 +20,16 @@ export interface IBootstrapContext {
   bootstrap: Bootstrap | undefined;
   id: number | undefined;
   userDeposit: UserDeposit | undefined;
-  cometBalances: BigInt[] | undefined;
+  cometBalances: bigint[] | undefined;
+  cometTotalSupply: bigint | undefined;
   setBootstrapperId: (id: string) => void;
   setSelectedOption: (option: string) => void;
   setId: (id: number | undefined) => void;
-  fetchBootstrapperConfig: () => Promise<undefined>;
+  fetchBootstrapperConfig: () => Promise<BootstrapperConfig | undefined>;
   fetchBootstrap: (id: number) => Promise<Bootstrap | undefined>;
   fetchUserDeposit: (id: number, userId: string) => Promise<UserDeposit | undefined>;
-  fetchCometBalances: () => Promise<BigInt[] | undefined>;
+  fetchCometBalances: () => Promise<bigint[] | undefined>;
+  calculateClaimAmount: (amount: number) => number | undefined;
 }
 
 const BootstrapContext = React.createContext<IBootstrapContext | undefined>(undefined);
@@ -41,15 +44,21 @@ export const BootstrapProvider = ({ children = null as any }): JSX.Element => {
   const [bootstrapperConfig, setBootstrapperConfig] = useState<BootstrapperConfig | undefined>(
     undefined
   );
-  const [cometBalances, setCometBalances] = useState<BigInt[] | undefined>(undefined);
+  const [cometBalances, setCometBalances] = useState<bigint[] | undefined>(undefined);
   const [userDeposit, setUserDeposit] = useState<UserDeposit | undefined>(undefined);
-
+  const [cometTotalSupply, setCometTotalSupply] = useState<bigint | undefined>(undefined);
   const rpc = getRpc();
   // wallet state
 
   useEffect(() => {
     if (bootstrapperId != undefined) {
-      fetchBootstrapperConfig();
+      fetchBootstrapperConfig().then((bootstrapperConfig) => {
+        if (bootstrapperConfig) {
+          fetchCometTotalSupply(bootstrapperConfig.backstopTokenId).then((cometTotalSupply) => {
+            setCometTotalSupply(cometTotalSupply);
+          });
+        }
+      });
     }
   }, [bootstrapperId]);
 
@@ -63,18 +72,21 @@ export const BootstrapProvider = ({ children = null as any }): JSX.Element => {
         }
       });
 
-      fetchCometBalances().then((cometBalances) => {
-        setCometBalances(cometBalances);
-      });
       if (connected) {
         fetchUserDeposit(id, walletAddress).then((userDeposit) => {
           setUserDeposit(userDeposit);
         });
       }
     }
-  }, [bootstrapperId, id, connected]);
+  }, [bootstrapperId, id, connected, bootstrapperConfig]);
 
-  const fetchBootstrapperConfig = async () => {
+  useEffect(() => {
+    fetchCometBalances().then((cometBalances) => {
+      setCometBalances(cometBalances);
+    });
+  }, [bootstrap, bootstrapperConfig, bootstrapperId]);
+
+  const fetchBootstrapperConfig = async (): Promise<BootstrapperConfig | undefined> => {
     if (bootstrapperId != undefined) {
       const configLedgerKey = xdr.LedgerKey.contractData(
         new xdr.LedgerKeyContractData({
@@ -117,6 +129,7 @@ export const BootstrapProvider = ({ children = null as any }): JSX.Element => {
             console.error('Unable to load bootstrapper config');
           } else {
             setBootstrapperConfig({ backstopId, backstopTokenId, cometTokenData });
+            return { backstopId, backstopTokenId, cometTokenData } as BootstrapperConfig;
           }
         }
       }
@@ -170,7 +183,7 @@ export const BootstrapProvider = ({ children = null as any }): JSX.Element => {
     return scValToNative(entry.val.contractData().val());
   };
 
-  const fetchCometBalances = async (): Promise<[BigInt, BigInt] | undefined> => {
+  const fetchCometBalances = async (): Promise<[bigint, bigint] | undefined> => {
     if (bootstrapperId == undefined || bootstrapperConfig == undefined || bootstrap == undefined) {
       return undefined;
     }
@@ -182,11 +195,82 @@ export const BootstrapProvider = ({ children = null as any }): JSX.Element => {
       bootstrapperConfig.cometTokenData[1 ^ bootstrap.config.token_index].address,
       bootstrapperConfig.backstopTokenId
     );
-
     if (cometBootstrapBalance == undefined || cometPairBalance == undefined) {
       return undefined;
     }
     return [cometBootstrapBalance, cometPairBalance];
+  };
+
+  const fetchCometTotalSupply = async (cometId: string): Promise<bigint | undefined> => {
+    let contract = new Contract(cometId);
+    let op = contract.call('get_total_supply', ...[]);
+    let sim = await simulateOperation(op);
+    if (SorobanRpc.Api.isSimulationSuccess(sim) && sim.result?.retval != undefined) {
+      let balance = scValToBigInt(sim.result.retval);
+      return balance;
+    } else {
+      console.error('Failed to load balance: ', sim);
+      return undefined;
+    }
+  };
+
+  const calculateClaimAmount = (amount: number): number | undefined => {
+    if (
+      bootstrap == undefined ||
+      bootstrapperConfig == undefined ||
+      cometBalances == undefined ||
+      cometTotalSupply == undefined
+    ) {
+      return undefined;
+    }
+    bootstrap.config.bootstrapper;
+    const bootstrapIndex = bootstrap.config.token_index;
+    const pairTokenIndex = 1 ^ bootstrapIndex;
+    const bootstrapTokenData = bootstrapperConfig.cometTokenData[bootstrapIndex];
+    const pairTokenData = bootstrapperConfig.cometTokenData[pairTokenIndex];
+    const newPairAmount = Number(bootstrap.data.total_pair) + amount;
+
+    const bootstrapClaimAmount =
+      (Number(bootstrap.data.bootstrap_amount) / Number(cometBalances[0])) *
+      Number(cometTotalSupply);
+    const pairClaimAmount = (newPairAmount / Number(cometBalances[1])) * Number(cometTotalSupply);
+
+    let claimAmount =
+      bootstrapClaimAmount < pairClaimAmount ? bootstrapClaimAmount : pairClaimAmount;
+
+    const pairJoinAmount = Number(cometBalances[1] / cometTotalSupply) * claimAmount;
+    const pairAmountLeft = Number(bootstrap.data.pair_amount) - pairJoinAmount;
+    const newCometPairBalance = Number(cometBalances[1]) + pairJoinAmount;
+
+    let pairSingleSide =
+      ((pairAmountLeft + Number(newCometPairBalance)) / Number(newCometPairBalance)) **
+        (pairTokenData.weight / 100) *
+        Number(cometTotalSupply) -
+      Number(cometTotalSupply);
+    claimAmount += pairSingleSide;
+    const bootstrapJoinAmount = Number(cometBalances[0] / cometTotalSupply) * claimAmount;
+    const bootstrapAmountLeft = Number(bootstrap.data.bootstrap_amount) - bootstrapJoinAmount;
+    const newCometBootstrapBalance = Number(cometBalances[0]) + bootstrapJoinAmount;
+
+    let bootstrapSingleSide =
+      ((bootstrapAmountLeft + Number(newCometBootstrapBalance)) /
+        Number(newCometBootstrapBalance)) **
+        (bootstrapTokenData.weight / 100) *
+        Number(cometTotalSupply) -
+      Number(cometTotalSupply);
+    claimAmount += bootstrapSingleSide;
+    claimAmount += Number(bootstrap.data.total_backstop_tokens);
+
+    if (walletAddress == bootstrap.config.bootstrapper) {
+      return (claimAmount * bootstrapTokenData.weight) / 100;
+    } else {
+      if (newPairAmount <= 0) return 0;
+      return (
+        (((claimAmount * (Number(userDeposit?.amount ?? 0n) + amount)) / newPairAmount) *
+          pairTokenData.weight) /
+        100
+      );
+    }
   };
 
   return (
@@ -199,6 +283,7 @@ export const BootstrapProvider = ({ children = null as any }): JSX.Element => {
         bootstrap,
         userDeposit,
         cometBalances,
+        cometTotalSupply,
         setId,
         setBootstrapperId,
         setSelectedOption,
@@ -206,6 +291,7 @@ export const BootstrapProvider = ({ children = null as any }): JSX.Element => {
         fetchBootstrap,
         fetchUserDeposit,
         fetchCometBalances,
+        calculateClaimAmount,
       }}
     >
       {children}

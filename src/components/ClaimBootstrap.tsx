@@ -1,9 +1,23 @@
+import { ChangeEvent, useEffect, useState } from 'react';
 import { useBootstrapper } from '../hooks/bootstrapContext';
 import { useWallet } from '../hooks/wallet';
 import { BootstrapData } from './BootstrapData';
+import Box from './common/Box';
+import LabeledInput from './common/LabeledInput';
+import Container from './common/Container';
 
 export function ClaimBootstrap() {
-  const { bootstrapperId, bootstrap, id, setId } = useBootstrapper();
+  const [claimAmount, setClaimAmount] = useState<number | undefined>(undefined);
+  const {
+    bootstrapperId,
+    bootstrap,
+    id,
+    setId,
+    calculateClaimAmount,
+    bootstrapperConfig,
+    cometBalances,
+    cometTotalSupply,
+  } = useBootstrapper();
 
   const { claimBootstrap } = useWallet();
 
@@ -12,42 +26,53 @@ export function ClaimBootstrap() {
       claimBootstrap(bootstrapperId, id);
     }
   }
+  useEffect(() => {
+    setClaimAmount(calculateClaimAmount(0));
+  }, [bootstrap, bootstrapperConfig, cometBalances, cometTotalSupply, id]);
+
   return (
-    <div
-      style={{
-        display: 'flex',
+    <Box
+      sx={{
         flexDirection: 'column',
         alignItems: 'center',
-        padding: '20px',
       }}
     >
       <h2>Claim Bootstrap</h2>
-      {bootstrap ? <BootstrapData /> : <></>}
-
-      <div
-        style={{
-          display: 'flex',
-          justifyContent: 'flex-start',
-          width: '100%',
-          margin: '10px 0',
+      <BootstrapData />
+      <LabeledInput
+        label={'Bootstrap Id'}
+        placeHolder={'Enter Bootstrap Id'}
+        value={id}
+        onChange={function (e: ChangeEvent<HTMLInputElement>): void {
+          const id = parseInt(e.target.value);
+          if (!isNaN(id)) setId(id);
+          else setId(undefined);
         }}
-      >
-        <label style={{ width: 'auto', textAlign: 'right', marginRight: '10px' }}>
-          Bootstrap Id
-        </label>
-        <input
-          type="text"
-          placeholder="Enter Bootstrap Id"
-          value={id}
-          onChange={(e) => {
-            const id = parseInt(e.target.value);
-            if (!isNaN(id)) setId(id);
-            else setId(undefined);
-          }}
-          style={{ flexGrow: 1 }}
-        />
-      </div>
+      />
+      {claimAmount != undefined && id != undefined ? (
+        <Container sx={{ flexDirection: 'column', justifyContent: 'center' }}>
+          <p
+            style={{
+              marginTop: '-5px',
+            }}
+          >
+            BLND-USDC LP To Claim: {claimAmount}
+          </p>
+          <p
+            style={{
+              wordBreak: 'break-word',
+              marginTop: '-5px',
+              color: '#FDDC5C',
+            }}
+          >
+            The claim amount is an estimate and is subject to change with the amount of pair tokens
+            deposited
+          </p>
+        </Container>
+      ) : (
+        <></>
+      )}
       <button onClick={() => SubmitTx()}>Submit</button>
-    </div>
+    </Box>
   );
 }

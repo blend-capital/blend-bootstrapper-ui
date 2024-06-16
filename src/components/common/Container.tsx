@@ -11,7 +11,6 @@ function Container({ children, sx }: ContainerProps) {
       style={{
         display: 'flex',
         flexWrap: 'wrap',
-        justifyContent: 'left',
         padding: '10px',
         marginTop: '5px',
         marginBottom: '5px',

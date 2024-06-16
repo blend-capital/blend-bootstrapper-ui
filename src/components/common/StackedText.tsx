@@ -9,7 +9,7 @@ type StackedTextProps = {
 
 function StackedText({ title, text, sx }: StackedTextProps) {
   return (
-    <Container sx={{ padding: '10px 10px', ...sx }}>
+    <Container sx={{ padding: '0px 10px', ...sx }}>
       <h4>{title}</h4>
       <p
         style={{

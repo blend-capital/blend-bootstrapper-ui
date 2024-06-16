@@ -1,11 +1,12 @@
+import { ChangeEvent } from 'react';
 import { useBootstrapper } from '../hooks/bootstrapContext';
 import { useWallet } from '../hooks/wallet';
 import { BootstrapData } from './BootstrapData';
 import Box from './common/Box';
+import LabeledInput from './common/LabeledInput';
 
 export function RefundBootstrap() {
-  const { bootstrapperId, bootstrap, userDeposit, id, setId, bootstrapperConfig } =
-    useBootstrapper();
+  const { bootstrapperId, userDeposit, id, setId } = useBootstrapper();
 
   const { refundBootstrap, connected } = useWallet();
 
@@ -15,12 +16,10 @@ export function RefundBootstrap() {
     }
   }
   return (
-    <div
-      style={{
-        display: 'flex',
+    <Box
+      sx={{
         flexDirection: 'column',
         alignItems: 'center',
-        padding: '20px',
       }}
     >
       <h2>Refund Bootstrap</h2>
@@ -43,30 +42,17 @@ export function RefundBootstrap() {
         <></>
       )}
 
-      <div
-        style={{
-          display: 'flex',
-          justifyContent: 'flex-start',
-          width: '100%',
-          margin: '10px 0',
+      <LabeledInput
+        label={'Bootstrap Id'}
+        placeHolder={'Enter Bootstrap Id'}
+        value={id}
+        onChange={function (e: ChangeEvent<HTMLInputElement>): void {
+          const id = parseInt(e.target.value);
+          if (!isNaN(id)) setId(id);
+          else setId(undefined);
         }}
-      >
-        <label style={{ width: 'auto', textAlign: 'right', marginRight: '10px' }}>
-          Bootstrap Id
-        </label>
-        <input
-          type="text"
-          placeholder="Enter Bootstrap Id"
-          value={id}
-          onChange={(e) => {
-            const id = parseInt(e.target.value);
-            if (!isNaN(id)) setId(id);
-            else setId(undefined);
-          }}
-          style={{ flexGrow: 1 }}
-        />
-      </div>
+      />
       <button onClick={() => SubmitTx()}>Submit</button>
-    </div>
+    </Box>
   );
 }

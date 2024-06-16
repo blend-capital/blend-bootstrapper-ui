@@ -19,6 +19,7 @@ export function BootstrapData() {
             flexDirection: 'row',
             justifyContent: 'center',
             flexWrap: 'wrap',
+            marginBottom: '-15px',
           }}
         >
           <p style={{ paddingLeft: '10px', paddingRight: '10px' }}>
