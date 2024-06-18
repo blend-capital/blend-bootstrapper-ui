@@ -81,6 +81,7 @@ export function NewBootstrap() {
         flexDirection: 'column',
         alignItems: 'center',
         justifyContent: 'center',
+        backgroundColor: '#CEDCFB',
       }}
     >
       <h2>New Bootstrap</h2>

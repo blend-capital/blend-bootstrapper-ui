@@ -53,6 +53,7 @@ export function JoinBootstrap() {
       sx={{
         flexDirection: 'column',
         alignItems: 'center',
+        backgroundColor: '#CEDCFB',
       }}
     >
       <h2>Join Bootstrap</h2>

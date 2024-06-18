@@ -20,6 +20,7 @@ export function RefundBootstrap() {
       sx={{
         flexDirection: 'column',
         alignItems: 'center',
+        backgroundColor: '#CEDCFB',
       }}
     >
       <h2>Refund Bootstrap</h2>

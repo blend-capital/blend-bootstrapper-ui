@@ -38,6 +38,7 @@ export const CometBalances = () => {
           flexDirection: 'row',
           justifyContent: 'center',
           alignItems: 'center',
+          backgroundColor: '#CEDCFB',
         }}
       >
         <StackedText

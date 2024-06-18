@@ -55,6 +55,7 @@ export function ExitBootstrap() {
       sx={{
         flexDirection: 'column',
         alignItems: 'center',
+        backgroundColor: '#CEDCFB',
       }}
     >
       <h2>Exit Bootstrap</h2>

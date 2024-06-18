@@ -35,6 +35,7 @@ export function ClaimBootstrap() {
       sx={{
         flexDirection: 'column',
         alignItems: 'center',
+        backgroundColor: '#CEDCFB',
       }}
     >
       <h2>Claim Bootstrap</h2>

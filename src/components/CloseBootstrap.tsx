@@ -19,6 +19,7 @@ export function CloseBootstrap() {
       sx={{
         flexDirection: 'column',
         alignItems: 'center',
+        backgroundColor: '#CEDCFB',
       }}
     >
       <h2>Close Bootstrap</h2>
