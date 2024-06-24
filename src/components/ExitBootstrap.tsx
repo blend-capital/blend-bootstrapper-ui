@@ -7,11 +7,12 @@ import Box from './common/Box';
 import LabeledInput from './common/LabeledInput';
 import Container from './common/Container';
 import { CometBalances } from './SpotPrice';
+import { scaleNumber, formatNumber } from '../utils/numberFormatter';
 
 export function ExitBootstrap() {
   const [amount, setAmount] = useState<string | undefined>(undefined);
   const [newSpotPrice, setNewSpotPrice] = useState<number | undefined>(undefined);
-  const [claimAmount, setClaimAmount] = useState<number | undefined>(undefined);
+  const [claimAmount, setClaimAmount] = useState<string | undefined>(undefined);
   const {
     bootstrapperId,
     bootstrap,
@@ -33,6 +34,7 @@ export function ExitBootstrap() {
 
   useEffect(() => {
     if (bootstrap && bootstrapperConfig && amount && cometBalances && cometTotalSupply) {
+      const scaledAmount = parseInt(scaleNumber(amount));
       const bootstrapIndex = bootstrap.config.token_index;
       const pairTokenIndex = 1 ^ bootstrapIndex;
       const bootstrapTokenData = bootstrapperConfig.cometTokenData[bootstrapIndex];
@@ -46,7 +48,8 @@ export function ExitBootstrap() {
         (Number(bootstrap.data.bootstrap_amount) / (bootstrapTokenData.weight / 100));
       setNewSpotPrice(newSpotPrice);
 
-      setClaimAmount(calculateClaimAmount(parseInt(amount) * -1));
+      let amountToClaim = calculateClaimAmount(scaledAmount * -1);
+      setClaimAmount(amountToClaim ? formatNumber(amountToClaim) : undefined);
     }
   }, [cometBalances, bootstrap, id, amount, cometTotalSupply, bootstrapperConfig]);
 

@@ -5,6 +5,7 @@ import Box from './common/Box';
 import Container from './common/Container';
 import StackedText from './common/StackedText';
 import LabeledInput from './common/LabeledInput';
+import { scaleNumber } from '../utils/numberFormatter';
 
 export function NewBootstrap() {
   const { bootstrapperId, bootstrapperConfig } = useBootstrapper();
@@ -65,10 +66,10 @@ export function NewBootstrap() {
       tokenIndex !== undefined
     ) {
       createBootstrap(bootstrapperId, {
-        amount: BigInt(amount),
+        amount: BigInt(scaleNumber(amount)),
         bootstrapper: walletAddress,
         close_ledger: parseInt(closeLedger),
-        pair_min: BigInt(pairMinimumAmount),
+        pair_min: BigInt(scaleNumber(pairMinimumAmount)),
         pool: poolId,
         token_index: tokenIndex,
       });

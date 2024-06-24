@@ -7,10 +7,11 @@ import { CometBalances } from './SpotPrice';
 import Box from './common/Box';
 import Container from './common/Container';
 import LabeledInput from './common/LabeledInput';
+import { formatNumber, scaleNumber } from '../utils/numberFormatter';
 export function JoinBootstrap() {
   const [amount, setAmount] = useState<string | undefined>(undefined);
   const [newSpotPrice, setNewSpotPrice] = useState<number | undefined>(undefined);
-  const [claimAmount, setClaimAmount] = useState<number | undefined>(undefined);
+  const [claimAmount, setClaimAmount] = useState<string | undefined>(undefined);
   const {
     bootstrapperId,
     bootstrap,
@@ -25,12 +26,13 @@ export function JoinBootstrap() {
 
   useEffect(() => {
     if (bootstrap && bootstrapperConfig && amount && cometBalances && cometTotalSupply) {
+      const scaledAmount = parseInt(scaleNumber(amount));
       const bootstrapIndex = bootstrap.config.token_index;
       const pairTokenIndex = 1 ^ bootstrapIndex;
       const bootstrapTokenData = bootstrapperConfig.cometTokenData[bootstrapIndex];
       const pairTokenData = bootstrapperConfig.cometTokenData[pairTokenIndex];
 
-      const newPairAmount = Number(bootstrap.data.pair_amount) + parseInt(amount);
+      const newPairAmount = Number(bootstrap.data.pair_amount) + scaledAmount;
 
       const newSpotPrice =
         newPairAmount /
@@ -38,13 +40,14 @@ export function JoinBootstrap() {
         (Number(bootstrap.data.bootstrap_amount) / (bootstrapTokenData.weight / 100));
       setNewSpotPrice(newSpotPrice);
 
-      setClaimAmount(calculateClaimAmount(parseInt(amount)));
+      let amountToClaim = calculateClaimAmount(scaledAmount);
+      setClaimAmount(amountToClaim ? formatNumber(amountToClaim) : undefined);
     }
   }, [cometBalances, bootstrap, id, amount, cometTotalSupply, bootstrapperConfig]);
 
   function SubmitTx() {
     if (bootstrapperId && id != undefined && amount) {
-      joinBootstrap(bootstrapperId, id, BigInt(amount));
+      joinBootstrap(bootstrapperId, id, BigInt(scaleNumber(amount)));
     }
   }
 
@@ -81,7 +84,7 @@ export function JoinBootstrap() {
         }}
       />
 
-      {claimAmount ? (
+      {claimAmount != undefined ? (
         <Container sx={{ flexDirection: 'column', justifyContent: 'center' }}>
           {amount && parseInt(amount) > 0 ? (
             <p

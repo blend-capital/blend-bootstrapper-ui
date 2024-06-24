@@ -4,6 +4,7 @@ import Box from './common/Box';
 import { useWallet } from '../hooks/wallet';
 import Container from './common/Container';
 import StackedText from './common/StackedText';
+import { formatNumber } from '../utils/numberFormatter';
 
 export const UserBalances = () => {
   const { fetchBalance, walletAddress, connected } = useWallet();
@@ -38,12 +39,12 @@ export const UserBalances = () => {
       >
         <StackedText
           title="Deposit Amount"
-          text={userDeposit ? userDeposit.amount.toString() : '0'}
+          text={userDeposit ? formatNumber(userDeposit.amount) : '0'}
           sx={{ flexDirection: 'column' }}
         />
         <StackedText
           title="Pair Token Wallet Balance"
-          text={walletBalance ? walletBalance.toString() : '0'}
+          text={walletBalance ? formatNumber(walletBalance) : '0'}
           sx={{ flexDirection: 'column' }}
         />
       </Box>
