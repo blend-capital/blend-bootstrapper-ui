@@ -22,6 +22,7 @@ export interface IBootstrapContext {
   userDeposit: UserDeposit | undefined;
   cometBalances: bigint[] | undefined;
   cometTotalSupply: bigint | undefined;
+  pairWalletBalance: number | undefined;
   setBootstrapperId: (id: string) => void;
   setSelectedOption: (option: string) => void;
   setId: (id: number | undefined) => void;
@@ -45,6 +46,7 @@ export const BootstrapProvider = ({ children = null as any }): JSX.Element => {
     undefined
   );
   const [cometBalances, setCometBalances] = useState<bigint[] | undefined>(undefined);
+  const [pairWalletBalance, setPairWalletBalance] = useState<number | undefined>(undefined);
   const [userDeposit, setUserDeposit] = useState<UserDeposit | undefined>(undefined);
   const [cometTotalSupply, setCometTotalSupply] = useState<bigint | undefined>(undefined);
   const rpc = getRpc();
@@ -84,6 +86,14 @@ export const BootstrapProvider = ({ children = null as any }): JSX.Element => {
     fetchCometBalances().then((cometBalances) => {
       setCometBalances(cometBalances);
     });
+    if (connected && bootstrap && bootstrapperConfig) {
+      let pairTokenId = bootstrapperConfig.cometTokenData[1 ^ bootstrap.config.token_index].address;
+      fetchBalance(pairTokenId, walletAddress)
+        .then((balance) => {
+          setPairWalletBalance(Number(balance));
+        })
+        .catch((error) => console.error(error));
+    }
   }, [bootstrap, bootstrapperConfig, bootstrapperId]);
 
   const fetchBootstrapperConfig = async (): Promise<BootstrapperConfig | undefined> => {
@@ -221,9 +231,9 @@ export const BootstrapProvider = ({ children = null as any }): JSX.Element => {
       cometBalances == undefined ||
       cometTotalSupply == undefined
     ) {
+      console.log('returning undef');
       return undefined;
     }
-    bootstrap.config.bootstrapper;
     const bootstrapIndex = bootstrap.config.token_index;
     const pairTokenIndex = 1 ^ bootstrapIndex;
     const bootstrapTokenData = bootstrapperConfig.cometTokenData[bootstrapIndex];
@@ -237,38 +247,46 @@ export const BootstrapProvider = ({ children = null as any }): JSX.Element => {
 
     let claimAmount =
       bootstrapClaimAmount < pairClaimAmount ? bootstrapClaimAmount : pairClaimAmount;
-
-    const pairJoinAmount = Number(cometBalances[1] / cometTotalSupply) * claimAmount;
-    const pairAmountLeft = Number(bootstrap.data.pair_amount) - pairJoinAmount;
+    console.log(claimAmount, bootstrapClaimAmount, pairClaimAmount);
+    const pairJoinAmount = (Number(cometBalances[1]) / Number(cometTotalSupply)) * claimAmount;
+    const pairAmountLeft = Number(bootstrap.data.pair_amount) + amount - pairJoinAmount;
     const newCometPairBalance = Number(cometBalances[1]) + pairJoinAmount;
-
     let pairSingleSide =
       ((pairAmountLeft + Number(newCometPairBalance)) / Number(newCometPairBalance)) **
         (pairTokenData.weight / 100) *
         Number(cometTotalSupply) -
       Number(cometTotalSupply);
     claimAmount += pairSingleSide;
-    const bootstrapJoinAmount = Number(cometBalances[0] / cometTotalSupply) * claimAmount;
+
+    const bootstrapJoinAmount = (Number(cometBalances[0]) / Number(cometTotalSupply)) * claimAmount;
     const bootstrapAmountLeft = Number(bootstrap.data.bootstrap_amount) - bootstrapJoinAmount;
     const newCometBootstrapBalance = Number(cometBalances[0]) + bootstrapJoinAmount;
-
     let bootstrapSingleSide =
       ((bootstrapAmountLeft + Number(newCometBootstrapBalance)) /
         Number(newCometBootstrapBalance)) **
         (bootstrapTokenData.weight / 100) *
         Number(cometTotalSupply) -
       Number(cometTotalSupply);
+
+    console.log(
+      'bootstrapSingleSide',
+      ((bootstrapAmountLeft + Number(newCometBootstrapBalance)) /
+        Number(newCometBootstrapBalance)) **
+        (bootstrapTokenData.weight / 100) *
+        Number(cometTotalSupply),
+      cometTotalSupply
+    );
     claimAmount += bootstrapSingleSide;
     claimAmount += Number(bootstrap.data.total_backstop_tokens);
 
     if (walletAddress == bootstrap.config.bootstrapper) {
-      return (claimAmount * bootstrapTokenData.weight) / 100;
+      return Math.round((claimAmount * bootstrapTokenData.weight) / 100);
     } else {
       if (newPairAmount <= 0) return 0;
-      return (
+      return Math.round(
         (((claimAmount * (Number(userDeposit?.amount ?? 0n) + amount)) / newPairAmount) *
           pairTokenData.weight) /
-        100
+          100
       );
     }
   };
@@ -284,6 +302,7 @@ export const BootstrapProvider = ({ children = null as any }): JSX.Element => {
         userDeposit,
         cometBalances,
         cometTotalSupply,
+        pairWalletBalance,
         setId,
         setBootstrapperId,
         setSelectedOption,

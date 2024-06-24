@@ -23,7 +23,7 @@ export const UserBalances = () => {
     }
   }, [connected, bootstrap, bootstrapperConfig, id, walletAddress]);
 
-  if (!connected || bootstrapperConfig == undefined || id == undefined) {
+  if (!connected || bootstrapperConfig == undefined || id == undefined || !bootstrap) {
     return <></>;
   }
   return (
@@ -38,7 +38,7 @@ export const UserBalances = () => {
         }}
       >
         <StackedText
-          title="Deposit Amount"
+          title="Amount Deposited"
           text={userDeposit ? formatNumber(userDeposit.amount) : '0'}
           sx={{ flexDirection: 'column' }}
         />

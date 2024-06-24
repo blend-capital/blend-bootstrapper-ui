@@ -1,4 +1,4 @@
-import { ChangeEvent, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useBootstrapper } from '../hooks/bootstrapContext';
 import { useWallet } from '../hooks/wallet';
 import Box from './common/Box';
@@ -6,6 +6,8 @@ import Container from './common/Container';
 import StackedText from './common/StackedText';
 import LabeledInput from './common/LabeledInput';
 import { scaleNumber } from '../utils/numberFormatter';
+import { isValidAddress } from '../utils/validation';
+import { connect } from 'http2';
 
 export function NewBootstrap() {
   const { bootstrapperId, bootstrapperConfig } = useBootstrapper();
@@ -14,8 +16,25 @@ export function NewBootstrap() {
   const [amount, setAmount] = useState<string | undefined>(undefined);
   const [pairMinimumAmount, setPairMinimumAmount] = useState<string | undefined>(undefined);
   const [closeLedger, setCloseLedger] = useState<string | undefined>(undefined);
-  const { createBootstrap, walletAddress } = useWallet();
+  const { createBootstrap, walletAddress, fetchBalance, connected } = useWallet();
   const [tokenIndex, setTokenIndex] = useState<number | undefined>(undefined);
+  const [bootstrapWalletBalance, setBootstrapWalletBalance] = useState<bigint | undefined>(
+    undefined
+  );
+  console.log(!!!pairMinimumAmount, closeLedger == undefined);
+  useEffect(() => {
+    if (
+      tokenIndex !== undefined &&
+      (tokenIndex == 0 || tokenIndex == 1) &&
+      bootstrapperConfig &&
+      connected
+    ) {
+      let tokenAddress = bootstrapperConfig?.cometTokenData[tokenIndex].address;
+      fetchBalance(tokenAddress, walletAddress).then((balance) => {
+        setBootstrapWalletBalance(balance);
+      });
+    }
+  }, [bootstrapperConfig, tokenIndex, connected, walletAddress]);
 
   function displayConfig() {
     if (bootstrapperConfig) {
@@ -75,7 +94,10 @@ export function NewBootstrap() {
       });
     }
   }
-
+  const isValidBootstrapAmount =
+    !!bootstrapWalletBalance && !!amount ? bootstrapWalletBalance > BigInt(amount) : true;
+  const isValidPoolId = !!poolId && isValidAddress(poolId);
+  const isValidTokenIndex = tokenIndex !== undefined && (tokenIndex == 0 || tokenIndex == 1);
   return (
     <Box
       sx={{
@@ -90,43 +112,66 @@ export function NewBootstrap() {
         label={'Pool Id'}
         placeHolder={'Enter Pool Address'}
         value={poolId}
-        onChange={function (e: ChangeEvent<HTMLInputElement>): void {
-          setPoolId(e.target.value);
+        onChange={function (id: string): void {
+          setPoolId(id);
         }}
+        disabled={poolId ? !isValidPoolId : false}
+        errorMessage="Invalid Pool Address"
       />
       <LabeledInput
         label={'Token Index'}
         placeHolder={'Enter Token Index'}
         value={tokenIndex}
-        onChange={function (e: ChangeEvent<HTMLInputElement>): void {
-          setTokenIndex(parseInt(e.target.value));
+        type="number"
+        onChange={function (value: string): void {
+          const tokenId = parseInt(value);
+          if (!isNaN(tokenId)) setTokenIndex(tokenId);
+          else setTokenIndex(undefined);
         }}
+        disabled={tokenIndex !== undefined ? !isValidTokenIndex : false}
+        errorMessage="Invalid Token Index (0 or 1)"
       />
       <LabeledInput
         label={'Amount'}
         placeHolder={'Enter Bootstrap Amount'}
+        type="number"
         value={amount}
-        onChange={function (e: ChangeEvent<HTMLInputElement>): void {
-          setAmount(e.target.value);
+        onChange={function (newAmount: string): void {
+          setAmount(newAmount);
         }}
+        disabled={!isValidBootstrapAmount}
+        errorMessage="Amount exceeds wallet balance"
       />
       <LabeledInput
         label={'Pair Minimum Amount'}
         placeHolder={'Enter Pair Minimum Amount'}
+        type="number"
         value={pairMinimumAmount}
-        onChange={function (e: ChangeEvent<HTMLInputElement>): void {
-          setPairMinimumAmount(e.target.value);
+        onChange={function (input: string): void {
+          setPairMinimumAmount(input);
         }}
       />
       <LabeledInput
         label={'Close Ledger'}
         placeHolder={'Enter Ledger to Close Bootstrap'}
+        type="number"
         value={closeLedger}
-        onChange={function (e: ChangeEvent<HTMLInputElement>): void {
-          setCloseLedger(e.target.value);
+        onChange={function (input: string): void {
+          setCloseLedger(input);
         }}
       />
-      <button onClick={() => SubmitTx()}>Submit</button>
+      <button
+        onClick={() => SubmitTx()}
+        disabled={
+          !isValidPoolId ||
+          !isValidTokenIndex ||
+          !isValidBootstrapAmount ||
+          !pairMinimumAmount ||
+          !closeLedger
+        }
+      >
+        Submit
+      </button>
     </Box>
   );
 }

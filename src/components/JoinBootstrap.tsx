@@ -1,4 +1,4 @@
-import { ChangeEvent, useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { BootstrapData } from './BootstrapData';
 import { UserBalances } from './UserBalances';
 import { useBootstrapper } from '../hooks/bootstrapContext';
@@ -8,6 +8,7 @@ import Box from './common/Box';
 import Container from './common/Container';
 import LabeledInput from './common/LabeledInput';
 import { formatNumber, scaleNumber } from '../utils/numberFormatter';
+import { BootstrapStatus } from '../types';
 export function JoinBootstrap() {
   const [amount, setAmount] = useState<string | undefined>(undefined);
   const [newSpotPrice, setNewSpotPrice] = useState<number | undefined>(undefined);
@@ -20,6 +21,7 @@ export function JoinBootstrap() {
     cometBalances,
     bootstrapperConfig,
     cometTotalSupply,
+    pairWalletBalance,
     calculateClaimAmount,
   } = useBootstrapper();
   const { joinBootstrap } = useWallet();
@@ -51,6 +53,8 @@ export function JoinBootstrap() {
     }
   }
 
+  const isValidBootstrap = !!bootstrap && bootstrap.status === BootstrapStatus.Active;
+  const isValidAmount = !!pairWalletBalance && !!amount && pairWalletBalance < BigInt(amount);
   return (
     <Box
       sx={{
@@ -69,23 +73,28 @@ export function JoinBootstrap() {
         label={'Bootstrap Id'}
         placeHolder={'Enter Bootstrap Id'}
         value={id}
-        onChange={function (e: ChangeEvent<HTMLInputElement>): void {
-          const id = parseInt(e.target.value);
-          if (!isNaN(id)) setId(id);
+        type="number"
+        onChange={function (value: string): void {
+          const newId = parseInt(value);
+          if (!isNaN(newId)) setId(newId);
           else setId(undefined);
         }}
+        disabled={id !== undefined ? !isValidBootstrap : false}
+        errorMessage="Invalid Bootstrap Id"
       />
       <LabeledInput
         label={'Amount'}
         placeHolder={'Enter Amount'}
         value={amount}
-        onChange={function (e: ChangeEvent<HTMLInputElement>): void {
-          setAmount(e.target.value);
+        type="number"
+        onChange={function (input: string): void {
+          setAmount(input);
         }}
+        disabled={amount ? isValidAmount : false}
       />
 
-      {claimAmount != undefined ? (
-        <Container sx={{ flexDirection: 'column', justifyContent: 'center' }}>
+      {claimAmount != undefined && bootstrap && (
+        <Container sx={{ flexDirection: 'column', justifyContent: 'center', width: '60%' }}>
           {amount && parseInt(amount) > 0 ? (
             <p
               style={{
@@ -102,7 +111,7 @@ export function JoinBootstrap() {
               marginTop: '-5px',
             }}
           >
-            BLND-USDC LP To Claim: {claimAmount}
+            Estimated BLND-USDC LP To Claim: {claimAmount}
           </p>
           <p
             style={{
@@ -112,13 +121,13 @@ export function JoinBootstrap() {
             }}
           >
             The claim amount is an estimate and is subject to change with the amount of pair tokens
-            deposited
+            deposited. Tokens will be claimable after the bootstrap period ends.
           </p>
         </Container>
-      ) : (
-        <></>
       )}
-      <button onClick={() => SubmitTx()}>Submit</button>
+      <button onClick={() => SubmitTx()} disabled={!isValidAmount || !isValidBootstrap}>
+        Submit
+      </button>
     </Box>
   );
 }
