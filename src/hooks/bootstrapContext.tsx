@@ -229,9 +229,9 @@ export const BootstrapProvider = ({ children = null as any }): JSX.Element => {
       bootstrap == undefined ||
       bootstrapperConfig == undefined ||
       cometBalances == undefined ||
-      cometTotalSupply == undefined
+      cometTotalSupply == undefined ||
+      amount == 0
     ) {
-      console.log('returning undef');
       return undefined;
     }
     const bootstrapIndex = bootstrap.config.token_index;
@@ -247,7 +247,6 @@ export const BootstrapProvider = ({ children = null as any }): JSX.Element => {
 
     let claimAmount =
       bootstrapClaimAmount < pairClaimAmount ? bootstrapClaimAmount : pairClaimAmount;
-    console.log(claimAmount, bootstrapClaimAmount, pairClaimAmount);
     const pairJoinAmount = (Number(cometBalances[1]) / Number(cometTotalSupply)) * claimAmount;
     const pairAmountLeft = Number(bootstrap.data.pair_amount) + amount - pairJoinAmount;
     const newCometPairBalance = Number(cometBalances[1]) + pairJoinAmount;
@@ -268,14 +267,6 @@ export const BootstrapProvider = ({ children = null as any }): JSX.Element => {
         Number(cometTotalSupply) -
       Number(cometTotalSupply);
 
-    console.log(
-      'bootstrapSingleSide',
-      ((bootstrapAmountLeft + Number(newCometBootstrapBalance)) /
-        Number(newCometBootstrapBalance)) **
-        (bootstrapTokenData.weight / 100) *
-        Number(cometTotalSupply),
-      cometTotalSupply
-    );
     claimAmount += bootstrapSingleSide;
     claimAmount += Number(bootstrap.data.total_backstop_tokens);
 

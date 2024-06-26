@@ -8,7 +8,6 @@ import LabeledInput from './common/LabeledInput';
 export function CloseBootstrap() {
   const { bootstrapperId, id, setId, bootstrap } = useBootstrapper();
   const { closeBootstrap } = useWallet();
-  console.log(!bootstrap || bootstrap.status != BootstrapStatus.Closing);
   function SubmitTx() {
     if (bootstrapperId && id != undefined) {
       closeBootstrap(bootstrapperId, id);

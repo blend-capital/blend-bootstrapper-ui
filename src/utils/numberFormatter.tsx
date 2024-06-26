@@ -19,6 +19,5 @@ export function scaleNumber(number: string, decimals: number = 7): string {
     return number + '0'.repeat(decimals);
   }
   const decimalIndex = number.length - index - 1;
-  console.log(number.replace('.', '') + '0'.repeat(decimals - decimalIndex));
   return number.replace('.', '') + '0'.repeat(decimals - decimalIndex);
 }

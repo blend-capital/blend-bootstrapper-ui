@@ -30,13 +30,14 @@ export function ExitBootstrap() {
 
   function SubmitTx() {
     if (bootstrapperId && id != undefined && amount) {
-      exitBootstrap(bootstrapperId, id, BigInt(amount));
+      exitBootstrap(bootstrapperId, id, BigInt(scaleNumber(amount)));
     }
   }
 
   useEffect(() => {
+    const scaledAmount = parseInt(scaleNumber(amount ? amount : '0'));
+
     if (bootstrap && bootstrapperConfig && amount && cometBalances && cometTotalSupply) {
-      const scaledAmount = parseInt(scaleNumber(amount));
       const bootstrapIndex = bootstrap.config.token_index;
       const pairTokenIndex = 1 ^ bootstrapIndex;
       const bootstrapTokenData = bootstrapperConfig.cometTokenData[bootstrapIndex];
@@ -49,14 +50,14 @@ export function ExitBootstrap() {
         (pairTokenData.weight / 100) /
         (Number(bootstrap.data.bootstrap_amount) / (bootstrapTokenData.weight / 100));
       setNewSpotPrice(newSpotPrice);
-
-      let amountToClaim = calculateClaimAmount(scaledAmount * -1);
-      setClaimAmount(amountToClaim ? formatNumber(amountToClaim) : undefined);
     }
+    let amountToClaim = calculateClaimAmount(scaledAmount * -1);
+    setClaimAmount(amountToClaim ? formatNumber(amountToClaim) : undefined);
   }, [cometBalances, bootstrap, id, amount, cometTotalSupply, bootstrapperConfig]);
 
   const isValidBootstrap = !!bootstrap && bootstrap.status === BootstrapStatus.Active;
-  const isValidAmount = !!userDeposit && !!amount && userDeposit.amount > BigInt(amount);
+  const isValidAmount =
+    !!userDeposit && !!amount && userDeposit.amount > BigInt(scaleNumber(amount));
   return (
     <Box
       sx={{
@@ -91,9 +92,7 @@ export function ExitBootstrap() {
         onChange={function (newAmount: string): void {
           setAmount(newAmount);
         }}
-        disabled={
-          amount !== undefined ? !userDeposit || userDeposit.amount > BigInt(amount) : false
-        }
+        disabled={amount !== undefined && amount !== '' ? !isValidAmount : false}
         errorMessage="Amount exceeds user deposit"
       />
       {claimAmount != undefined && bootstrap && (

@@ -54,7 +54,8 @@ export function JoinBootstrap() {
   }
 
   const isValidBootstrap = !!bootstrap && bootstrap.status === BootstrapStatus.Active;
-  const isValidAmount = !!pairWalletBalance && !!amount && pairWalletBalance < BigInt(amount);
+  const isValidAmount = !!pairWalletBalance && !!amount && pairWalletBalance > BigInt(amount);
+
   return (
     <Box
       sx={{
@@ -90,7 +91,7 @@ export function JoinBootstrap() {
         onChange={function (input: string): void {
           setAmount(input);
         }}
-        disabled={amount ? isValidAmount : false}
+        disabled={amount ? !isValidAmount : false}
       />
 
       {claimAmount != undefined && bootstrap && (

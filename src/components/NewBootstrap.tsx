@@ -7,7 +7,7 @@ import StackedText from './common/StackedText';
 import LabeledInput from './common/LabeledInput';
 import { scaleNumber } from '../utils/numberFormatter';
 import { isValidAddress } from '../utils/validation';
-import { connect } from 'http2';
+import { nativeToScVal } from '@stellar/stellar-sdk';
 
 export function NewBootstrap() {
   const { bootstrapperId, bootstrapperConfig } = useBootstrapper();
@@ -21,7 +21,6 @@ export function NewBootstrap() {
   const [bootstrapWalletBalance, setBootstrapWalletBalance] = useState<bigint | undefined>(
     undefined
   );
-  console.log(!!!pairMinimumAmount, closeLedger == undefined);
   useEffect(() => {
     if (
       tokenIndex !== undefined &&
