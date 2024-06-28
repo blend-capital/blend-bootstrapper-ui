@@ -102,7 +102,7 @@ export function ExitBootstrap() {
         disabled={amount !== undefined && amount !== '' ? !isValidAmount : false}
         errorMessage="Amount exceeds user deposit"
       />
-      {claimAmount != undefined && bootstrap && (
+      {claimAmount != undefined && id !== undefined && (
         <Container sx={{ flexDirection: 'column', justifyContent: 'center' }}>
           {amount && parseInt(amount) > 0 ? (
             <p
