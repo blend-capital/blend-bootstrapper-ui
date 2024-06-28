@@ -7,9 +7,10 @@ import {
   xBullModule,
   LobstrModule,
   AlbedoModule,
-} from '@creit.tech/stellar-wallets-kit/build';
+} from '@creit.tech/stellar-wallets-kit';
 import { getNetworkDetails as getFreighterNetwork } from '@stellar/freighter-api';
 import {
+  Account,
   BASE_FEE,
   Contract,
   Operation,
@@ -233,7 +234,12 @@ export const WalletProvider = ({ children = null as any }): JSX.Element => {
   ): Promise<SorobanRpc.Api.SimulateTransactionResponse> {
     try {
       setLoadingSim(true);
-      const account = await rpc.getAccount(walletAddress);
+      let account: Account;
+      if (connected) {
+        account = await rpc.getAccount(walletAddress);
+      } else {
+        account = new Account('GAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAWHF', '123');
+      }
       const tx_builder = new TransactionBuilder(account, {
         networkPassphrase: network.passphrase,
         fee: BASE_FEE,
