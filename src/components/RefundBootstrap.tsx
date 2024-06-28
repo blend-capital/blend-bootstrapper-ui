@@ -1,12 +1,12 @@
-import { ChangeEvent } from 'react';
 import { useBootstrapper } from '../hooks/bootstrapContext';
 import { useWallet } from '../hooks/wallet';
+import { BootstrapStatus } from '../types';
 import { BootstrapData } from './BootstrapData';
 import Box from './common/Box';
 import LabeledInput from './common/LabeledInput';
 
 export function RefundBootstrap() {
-  const { bootstrapperId, userDeposit, id, setId } = useBootstrapper();
+  const { bootstrapperId, userDeposit, id, setId, bootstrap } = useBootstrapper();
 
   const { refundBootstrap, connected } = useWallet();
 
@@ -15,6 +15,9 @@ export function RefundBootstrap() {
       refundBootstrap(bootstrapperId, id);
     }
   }
+
+  const isValidBootstrap = !!bootstrap && bootstrap.status === BootstrapStatus.Cancelled;
+
   return (
     <Box
       sx={{
@@ -45,14 +48,19 @@ export function RefundBootstrap() {
       <LabeledInput
         label={'Bootstrap Id'}
         placeHolder={'Enter Bootstrap Id'}
+        type="number"
         value={id}
-        onChange={function (e: ChangeEvent<HTMLInputElement>): void {
-          const id = parseInt(e.target.value);
-          if (!isNaN(id)) setId(id);
+        onChange={function (value: string): void {
+          const newId = parseInt(value);
+          if (!isNaN(newId)) setId(newId);
           else setId(undefined);
         }}
+        disabled={id !== undefined ? isValidBootstrap : false}
+        errorMessage="Invalid Bootstrap Id"
       />
-      <button onClick={() => SubmitTx()}>Submit</button>
+      <button onClick={() => SubmitTx()} disabled={!isValidBootstrap}>
+        Submit
+      </button>
     </Box>
   );
 }

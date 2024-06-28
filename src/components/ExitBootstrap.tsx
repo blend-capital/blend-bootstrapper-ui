@@ -1,4 +1,4 @@
-import { ChangeEvent, useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useBootstrapper } from '../hooks/bootstrapContext';
 import { useWallet } from '../hooks/wallet';
 import { BootstrapData } from './BootstrapData';
@@ -7,11 +7,13 @@ import Box from './common/Box';
 import LabeledInput from './common/LabeledInput';
 import Container from './common/Container';
 import { CometBalances } from './SpotPrice';
+import { scaleNumber, formatNumber } from '../utils/numberFormatter';
+import { BootstrapStatus } from '../types';
 
 export function ExitBootstrap() {
   const [amount, setAmount] = useState<string | undefined>(undefined);
   const [newSpotPrice, setNewSpotPrice] = useState<number | undefined>(undefined);
-  const [claimAmount, setClaimAmount] = useState<number | undefined>(undefined);
+  const [claimAmount, setClaimAmount] = useState<string | undefined>(undefined);
   const {
     bootstrapperId,
     bootstrap,
@@ -20,6 +22,7 @@ export function ExitBootstrap() {
     bootstrapperConfig,
     cometBalances,
     cometTotalSupply,
+    userDeposit,
     calculateClaimAmount,
   } = useBootstrapper();
 
@@ -27,11 +30,13 @@ export function ExitBootstrap() {
 
   function SubmitTx() {
     if (bootstrapperId && id != undefined && amount) {
-      exitBootstrap(bootstrapperId, id, BigInt(amount));
+      exitBootstrap(bootstrapperId, id, BigInt(scaleNumber(amount)));
     }
   }
 
   useEffect(() => {
+    const scaledAmount = parseInt(scaleNumber(amount ? amount : '0'));
+
     if (bootstrap && bootstrapperConfig && amount && cometBalances && cometTotalSupply) {
       const bootstrapIndex = bootstrap.config.token_index;
       const pairTokenIndex = 1 ^ bootstrapIndex;
@@ -45,11 +50,14 @@ export function ExitBootstrap() {
         (pairTokenData.weight / 100) /
         (Number(bootstrap.data.bootstrap_amount) / (bootstrapTokenData.weight / 100));
       setNewSpotPrice(newSpotPrice);
-
-      setClaimAmount(calculateClaimAmount(parseInt(amount) * -1));
     }
+    let amountToClaim = calculateClaimAmount(scaledAmount * -1);
+    setClaimAmount(amountToClaim ? formatNumber(amountToClaim) : undefined);
   }, [cometBalances, bootstrap, id, amount, cometTotalSupply, bootstrapperConfig]);
 
+  const isValidBootstrap = !!bootstrap && bootstrap.status === BootstrapStatus.Active;
+  const isValidAmount =
+    !!userDeposit && !!amount && userDeposit.amount > BigInt(scaleNumber(amount));
   return (
     <Box
       sx={{
@@ -66,22 +74,28 @@ export function ExitBootstrap() {
       <LabeledInput
         label={'Bootstrap Id'}
         placeHolder={'Enter Bootstrap Id'}
+        type="number"
         value={id}
-        onChange={function (e: ChangeEvent<HTMLInputElement>): void {
-          const id = parseInt(e.target.value);
-          if (!isNaN(id)) setId(id);
+        onChange={function (value: string): void {
+          const newId = parseInt(value);
+          if (!isNaN(newId)) setId(newId);
           else setId(undefined);
         }}
+        disabled={id !== undefined ? !bootstrap : false}
+        errorMessage="Invalid Bootstrap Id"
       />
       <LabeledInput
         label={'Amount'}
         placeHolder={'Enter Amount'}
+        type="number"
         value={amount}
-        onChange={function (e: ChangeEvent<HTMLInputElement>): void {
-          setAmount(e.target.value);
+        onChange={function (newAmount: string): void {
+          setAmount(newAmount);
         }}
+        disabled={amount !== undefined && amount !== '' ? !isValidAmount : false}
+        errorMessage="Amount exceeds user deposit"
       />
-      {claimAmount != undefined ? (
+      {claimAmount != undefined && bootstrap && (
         <Container sx={{ flexDirection: 'column', justifyContent: 'center' }}>
           {amount && parseInt(amount) > 0 ? (
             <p
@@ -99,7 +113,7 @@ export function ExitBootstrap() {
               marginTop: '-5px',
             }}
           >
-            BLND-USDC LP To Claim: {claimAmount}
+            Estimated BLND-USDC LP To Claim: {claimAmount}
           </p>
           <p
             style={{
@@ -109,13 +123,13 @@ export function ExitBootstrap() {
             }}
           >
             The claim amount is an estimate and is subject to change with the amount of pair tokens
-            deposited
+            deposited. Tokens will be claimable after the bootstrap period ends.
           </p>
         </Container>
-      ) : (
-        <></>
       )}
-      <button onClick={() => SubmitTx()}>Submit</button>
+      <button onClick={() => SubmitTx()} disabled={!isValidAmount || !isValidBootstrap}>
+        Submit
+      </button>
     </Box>
   );
 }

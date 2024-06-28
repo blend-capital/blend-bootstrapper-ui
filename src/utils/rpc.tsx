@@ -7,9 +7,9 @@ export interface Network {
   opts?: Horizon.Server.Options;
 }
 const network: Network = {
-  rpc: 'http://localhost:8000/soroban/rpc',
-  passphrase: 'Standalone Network ; February 2017',
-  opts: { allowHttp: true },
+  rpc: 'https://soroban-testnet.stellar.org',
+  passphrase: 'Test SDF Network ; September 2015',
+  opts: undefined,
 };
 const rpc = new SorobanRpc.Server(network.rpc, network.opts);
 

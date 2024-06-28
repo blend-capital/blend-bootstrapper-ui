@@ -1,10 +1,11 @@
-import { ChangeEvent, useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useBootstrapper } from '../hooks/bootstrapContext';
 import { useWallet } from '../hooks/wallet';
 import { BootstrapData } from './BootstrapData';
 import Box from './common/Box';
 import LabeledInput from './common/LabeledInput';
 import Container from './common/Container';
+import { BootstrapStatus } from '../types';
 
 export function ClaimBootstrap() {
   const [claimAmount, setClaimAmount] = useState<number | undefined>(undefined);
@@ -42,12 +43,15 @@ export function ClaimBootstrap() {
       <LabeledInput
         label={'Bootstrap Id'}
         placeHolder={'Enter Bootstrap Id'}
+        type="number"
         value={id}
-        onChange={function (e: ChangeEvent<HTMLInputElement>): void {
-          const id = parseInt(e.target.value);
-          if (!isNaN(id)) setId(id);
+        onChange={function (value: string): void {
+          const new_id = parseInt(value);
+          if (!isNaN(new_id)) setId(new_id);
           else setId(undefined);
         }}
+        disabled={id !== undefined ? !bootstrap : false}
+        errorMessage="Invalid Bootstrap Id"
       />
       {claimAmount != undefined && id != undefined ? (
         <Container sx={{ flexDirection: 'column', justifyContent: 'center' }}>
@@ -56,7 +60,7 @@ export function ClaimBootstrap() {
               marginTop: '-5px',
             }}
           >
-            BLND-USDC LP To Claim: {claimAmount}
+            Estimated BLND-USDC LP To Claim: {claimAmount}
           </p>
           <p
             style={{
@@ -66,13 +70,18 @@ export function ClaimBootstrap() {
             }}
           >
             The claim amount is an estimate and is subject to change with the amount of pair tokens
-            deposited
+            deposited. Tokens will be claimable after the bootstrap period ends.
           </p>
         </Container>
       ) : (
         <></>
       )}
-      <button onClick={() => SubmitTx()}>Submit</button>
+      <button
+        onClick={() => SubmitTx()}
+        disabled={!bootstrap || bootstrap.status != BootstrapStatus.Completed}
+      >
+        Submit
+      </button>
     </Box>
   );
 }

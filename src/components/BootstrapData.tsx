@@ -1,5 +1,6 @@
 import { useBootstrapper } from '../hooks/bootstrapContext';
 import { BootstrapStatus } from '../types';
+import { formatNumber } from '../utils/numberFormatter';
 import Box from './common/Box';
 import Container from './common/Container';
 import StackedText from './common/StackedText';
@@ -38,13 +39,13 @@ export function BootstrapData() {
           }}
         >
           <p style={{ paddingLeft: '10px', paddingRight: '10px' }}>
-            Pair Token Amount: {bootstrap.data.pair_amount.toString()}
+            Pair Token Amount: {formatNumber(bootstrap.data.pair_amount)}
           </p>
           <p style={{ paddingLeft: '10px', paddingRight: '10px' }}>
-            Bootstrap Amount: {bootstrap.data.bootstrap_amount.toString()}
+            Bootstrap Amount: {formatNumber(bootstrap.data.bootstrap_amount)}
           </p>
           <p style={{ paddingLeft: '10px', paddingRight: '10px' }}>
-            Pair Minimum Amount: {Number(bootstrap.config.pair_min)}
+            Pair Minimum Amount: {formatNumber(bootstrap.config.pair_min)}
           </p>
         </Container>
       </Box>

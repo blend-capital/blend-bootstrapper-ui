@@ -1,14 +1,13 @@
-import { ChangeEvent } from 'react';
 import { useBootstrapper } from '../hooks/bootstrapContext';
 import { useWallet } from '../hooks/wallet';
+import { BootstrapStatus } from '../types';
 import { BootstrapData } from './BootstrapData';
 import Box from './common/Box';
 import LabeledInput from './common/LabeledInput';
 
 export function CloseBootstrap() {
-  const { bootstrapperId, id, setId } = useBootstrapper();
+  const { bootstrapperId, id, setId, bootstrap } = useBootstrapper();
   const { closeBootstrap } = useWallet();
-
   function SubmitTx() {
     if (bootstrapperId && id != undefined) {
       closeBootstrap(bootstrapperId, id);
@@ -26,14 +25,22 @@ export function CloseBootstrap() {
       <LabeledInput
         label={'Bootstrap Id'}
         placeHolder={'Enter Bootstrap Id'}
+        type="number"
         value={id}
-        onChange={function (e: ChangeEvent<HTMLInputElement>): void {
-          const id = parseInt(e.target.value);
+        onChange={function (value: string): void {
+          const id = parseInt(value);
           if (!isNaN(id)) setId(id);
           else setId(undefined);
         }}
+        disabled={id !== undefined ? !bootstrap : false}
+        errorMessage="Invalid Bootstrap Id"
       />
-      <button onClick={() => SubmitTx()}>Submit</button>
+      <button
+        onClick={() => SubmitTx()}
+        disabled={!bootstrap || bootstrap.status != BootstrapStatus.Closing}
+      >
+        Submit
+      </button>
     </Box>
   );
 }
