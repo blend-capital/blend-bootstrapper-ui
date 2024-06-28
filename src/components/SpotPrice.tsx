@@ -31,7 +31,7 @@ export const CometBalances = () => {
     (bootstrapTokenData.weight / 100);
 
   return (
-    <Container sx={{ justifyContent: 'center', flexDirection: 'column' }}>
+    <Container sx={{ justifyContent: 'center', flexDirection: 'column', marginTop: '-10px' }}>
       <h3>Spot Prices</h3>
       <Box
         sx={{

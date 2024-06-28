@@ -27,7 +27,7 @@ export const UserBalances = () => {
     return <></>;
   }
   return (
-    <Container sx={{ flexDirection: 'column', justifyContent: 'center' }}>
+    <Container sx={{ flexDirection: 'column', justifyContent: 'center', marginTop: '-10px' }}>
       <h3>User Balances</h3>
       <Box
         sx={{
