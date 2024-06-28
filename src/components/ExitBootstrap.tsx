@@ -50,8 +50,7 @@ export function ExitBootstrap() {
       const bootstrapTokenData = bootstrapperConfig.cometTokenData[bootstrapIndex];
       const pairTokenData = bootstrapperConfig.cometTokenData[pairTokenIndex];
 
-      const newPairAmount = Number(bootstrap.data.pair_amount) - parseInt(amount);
-
+      const newPairAmount = Number(bootstrap.data.pair_amount) - scaledAmount;
       const newSpotPrice =
         newPairAmount /
         (pairTokenData.weight / 100) /
@@ -59,12 +58,13 @@ export function ExitBootstrap() {
       setNewSpotPrice(newSpotPrice);
     }
     let amountToClaim = calculateClaimAmount(scaledAmount * -1);
-    setClaimAmount(amountToClaim ? formatNumber(amountToClaim) : undefined);
-  }, [cometBalances, bootstrap, id, amount, cometTotalSupply, bootstrapperConfig]);
+
+    setClaimAmount(amountToClaim !== undefined ? formatNumber(amountToClaim) : undefined);
+  }, [cometBalances, bootstrap, id, amount, cometTotalSupply, bootstrapperConfig, userDeposit]);
 
   const isValidBootstrap = !!bootstrap && bootstrap.status === BootstrapStatus.Active;
   const isValidAmount =
-    !!userDeposit && !!amount && userDeposit.amount > BigInt(scaleNumber(amount));
+    !!userDeposit && !!amount && userDeposit.amount >= BigInt(scaleNumber(amount));
   return (
     <Box
       sx={{

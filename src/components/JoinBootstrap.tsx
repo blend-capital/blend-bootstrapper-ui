@@ -62,8 +62,7 @@ export function JoinBootstrap() {
 
   const isValidBootstrap = !!bootstrap && bootstrap.status === BootstrapStatus.Active;
   const isValidAmount =
-    !!pairWalletBalance && !!amount && pairWalletBalance > BigInt(scaleNumber(amount));
-
+    !!pairWalletBalance && !!amount && pairWalletBalance >= BigInt(scaleNumber(amount));
   return (
     <Box
       sx={{
@@ -100,6 +99,7 @@ export function JoinBootstrap() {
           setAmount(input);
         }}
         disabled={amount ? !isValidAmount : false}
+        errorMessage="Amount exceeds wallet balance"
       />
 
       {claimAmount != undefined && bootstrap && (

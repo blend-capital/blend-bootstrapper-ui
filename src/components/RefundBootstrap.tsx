@@ -1,8 +1,10 @@
 import { useBootstrapper } from '../hooks/bootstrapContext';
 import { useWallet } from '../hooks/wallet';
 import { BootstrapStatus } from '../types';
+import { formatNumber } from '../utils/numberFormatter';
 import { BootstrapData } from './BootstrapData';
 import Box from './common/Box';
+import Container from './common/Container';
 import LabeledInput from './common/LabeledInput';
 
 export function RefundBootstrap() {
@@ -21,9 +23,9 @@ export function RefundBootstrap() {
       });
     }
   }
-
   const isValidBootstrap = !!bootstrap && bootstrap.status === BootstrapStatus.Cancelled;
-
+  const hasRefund =
+    userDeposit !== undefined && !userDeposit?.refunded && userDeposit?.amount > BigInt(0);
   return (
     <Box
       sx={{
@@ -33,23 +35,6 @@ export function RefundBootstrap() {
     >
       <h2>Refund Bootstrap</h2>
       <BootstrapData />
-      {userDeposit && id != undefined && connected ? (
-        <Box>
-          <div
-            style={{
-              display: 'flex',
-              flexDirection: 'row',
-              justifyContent: 'center',
-            }}
-          >
-            <p style={{ paddingLeft: '10px', paddingRight: '10px' }}>
-              Refund Status: {userDeposit.refunded.toString()}
-            </p>
-          </div>
-        </Box>
-      ) : (
-        <></>
-      )}
 
       <LabeledInput
         label={'Bootstrap Id'}
@@ -61,10 +46,34 @@ export function RefundBootstrap() {
           if (!isNaN(newId)) setId(newId);
           else setId(undefined);
         }}
-        disabled={id !== undefined ? isValidBootstrap : false}
+        disabled={id !== undefined ? !isValidBootstrap : false}
         errorMessage="Invalid Bootstrap Id"
       />
-      <button onClick={() => SubmitTx()} disabled={!isValidBootstrap}>
+      {userDeposit && id != undefined && connected && (
+        <Container>
+          <div
+            style={{
+              display: 'flex',
+              flexDirection: 'row',
+              justifyContent: 'center',
+            }}
+          >
+            <p style={{ paddingLeft: '10px', paddingRight: '10px' }}>
+              Refund Status: {userDeposit.refunded ? 'Refunded' : 'Not Refunded'}
+            </p>
+            {userDeposit.refunded ? (
+              <p style={{ paddingLeft: '10px', paddingRight: '10px' }}>
+                Refunded Amount: {formatNumber(userDeposit.amount)}
+              </p>
+            ) : (
+              <p style={{ paddingLeft: '10px', paddingRight: '10px' }}>
+                Refund Amount: {formatNumber(userDeposit.amount)}
+              </p>
+            )}
+          </div>
+        </Container>
+      )}
+      <button onClick={() => SubmitTx()} disabled={!isValidBootstrap || !hasRefund}>
         Submit
       </button>
     </Box>
