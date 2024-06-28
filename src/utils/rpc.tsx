@@ -7,8 +7,8 @@ export interface Network {
   opts?: Horizon.Server.Options;
 }
 const network: Network = {
-  rpc: 'https://soroban-testnet.stellar.org',
-  passphrase: 'Test SDF Network ; September 2015',
+  rpc: import.meta.env.VITE_RPC_URL || 'https://soroban-testnet.stellar.org',
+  passphrase: import.meta.env.VITE_NETWORK_PASSPHRASE || 'Test SDF Network ; September 2015',
   opts: undefined,
 };
 const rpc = new SorobanRpc.Server(network.rpc, network.opts);

@@ -18,13 +18,20 @@ export function ClaimBootstrap() {
     bootstrapperConfig,
     cometBalances,
     cometTotalSupply,
+    fetchBootstrap,
+    fetchUserDeposit,
   } = useBootstrapper();
 
-  const { claimBootstrap } = useWallet();
+  const { claimBootstrap, walletAddress, connected } = useWallet();
 
   function SubmitTx() {
-    if (bootstrapperId && id != undefined) {
-      claimBootstrap(bootstrapperId, id);
+    if (id != undefined && connected) {
+      claimBootstrap(bootstrapperId, id).then((success) => {
+        if (success) {
+          fetchBootstrap(id);
+          fetchUserDeposit(id, walletAddress);
+        }
+      });
     }
   }
   useEffect(() => {
