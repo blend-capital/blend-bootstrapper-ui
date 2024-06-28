@@ -14,7 +14,7 @@ import { useWallet } from './wallet';
 import { getRpc } from '../utils/rpc';
 
 export interface IBootstrapContext {
-  bootstrapperId: string | undefined;
+  bootstrapperId: string;
   selectedOption: string | undefined;
   bootstrapperConfig: BootstrapperConfig | undefined;
   bootstrap: Bootstrap | undefined;
@@ -23,7 +23,6 @@ export interface IBootstrapContext {
   cometBalances: bigint[] | undefined;
   cometTotalSupply: bigint | undefined;
   pairWalletBalance: number | undefined;
-  setBootstrapperId: (id: string) => void;
   setSelectedOption: (option: string) => void;
   setId: (id: number | undefined) => void;
   fetchBootstrapperConfig: () => Promise<BootstrapperConfig | undefined>;
@@ -37,8 +36,7 @@ const BootstrapContext = React.createContext<IBootstrapContext | undefined>(unde
 
 export const BootstrapProvider = ({ children = null as any }): JSX.Element => {
   const { simulateOperation, fetchBalance, connected, walletAddress } = useWallet();
-
-  const [bootstrapperId, setBootstrapperId] = useState<string | undefined>(undefined);
+  const bootstrapperId = import.meta.env.VITE_BOOTSTRAPPER_ADDRESS;
   const [id, setId] = useState<number | undefined>(undefined);
   const [bootstrap, setBootstrap] = useState<Bootstrap | undefined>(undefined);
   const [selectedOption, setSelectedOption] = useState<string | undefined>(undefined);
@@ -53,48 +51,40 @@ export const BootstrapProvider = ({ children = null as any }): JSX.Element => {
   // wallet state
 
   useEffect(() => {
-    if (bootstrapperId != undefined) {
-      fetchBootstrapperConfig().then((bootstrapperConfig) => {
-        if (bootstrapperConfig) {
-          fetchCometTotalSupply(bootstrapperConfig.backstopTokenId).then((cometTotalSupply) => {
-            setCometTotalSupply(cometTotalSupply);
+    fetchBootstrapperConfig().then((bootstrapperConfig) => {
+      if (bootstrapperConfig) {
+        fetchCometTotalSupply(bootstrapperConfig.backstopTokenId).then((cometTotalSupply) => {
+          setCometTotalSupply(cometTotalSupply);
+        });
+
+        if (id !== undefined) {
+          fetchBootstrap(id).then((bootstrap) => {
+            if (bootstrap != undefined) {
+              setBootstrap(bootstrap);
+              fetchCometBalances().then((res) => {
+                setCometBalances(res);
+              });
+              if (connected) {
+                fetchUserDeposit(id, walletAddress).then((userDeposit) => {
+                  setUserDeposit(userDeposit);
+                });
+
+                let pairTokenId =
+                  bootstrapperConfig.cometTokenData[1 ^ bootstrap.config.token_index].address;
+                fetchBalance(pairTokenId, walletAddress)
+                  .then((balance) => {
+                    setPairWalletBalance(Number(balance));
+                  })
+                  .catch((error) => console.error(error));
+              }
+            } else {
+              setBootstrap(undefined);
+            }
           });
         }
-      });
-    }
-  }, [bootstrapperId]);
-
-  useEffect(() => {
-    if (bootstrapperId != undefined && id != undefined) {
-      fetchBootstrap(id).then((bootstrap) => {
-        if (bootstrap != undefined) {
-          setBootstrap(bootstrap);
-        } else {
-          setBootstrap(undefined);
-        }
-      });
-
-      if (connected) {
-        fetchUserDeposit(id, walletAddress).then((userDeposit) => {
-          setUserDeposit(userDeposit);
-        });
       }
-    }
-  }, [bootstrapperId, id, connected, bootstrapperConfig]);
-
-  useEffect(() => {
-    fetchCometBalances().then((cometBalances) => {
-      setCometBalances(cometBalances);
     });
-    if (connected && bootstrap && bootstrapperConfig) {
-      let pairTokenId = bootstrapperConfig.cometTokenData[1 ^ bootstrap.config.token_index].address;
-      fetchBalance(pairTokenId, walletAddress)
-        .then((balance) => {
-          setPairWalletBalance(Number(balance));
-        })
-        .catch((error) => console.error(error));
-    }
-  }, [bootstrap, bootstrapperConfig, bootstrapperId]);
+  }, [bootstrapperId, id, connected]);
 
   const fetchBootstrapperConfig = async (): Promise<BootstrapperConfig | undefined> => {
     if (bootstrapperId != undefined) {
@@ -155,6 +145,7 @@ export const BootstrapProvider = ({ children = null as any }): JSX.Element => {
     let sim = await simulateOperation(bootstrapOp);
     if (SorobanRpc.Api.isSimulationSuccess(sim) && sim.result?.retval != undefined) {
       let bootstrap = scValToNative(sim.result.retval);
+      setBootstrap(bootstrap as Bootstrap);
       return bootstrap as Bootstrap;
     } else {
       console.error('Failed to load bootstrap: ', sim);
@@ -190,11 +181,13 @@ export const BootstrapProvider = ({ children = null as any }): JSX.Element => {
     if (entry == undefined) {
       return undefined;
     }
+
+    setUserDeposit(scValToNative(entry.val.contractData().val()) as UserDeposit);
     return scValToNative(entry.val.contractData().val());
   };
 
   const fetchCometBalances = async (): Promise<[bigint, bigint] | undefined> => {
-    if (bootstrapperId == undefined || bootstrapperConfig == undefined || bootstrap == undefined) {
+    if (bootstrapperConfig == undefined || bootstrap == undefined) {
       return undefined;
     }
     let cometBootstrapBalance = await fetchBalance(
@@ -208,6 +201,7 @@ export const BootstrapProvider = ({ children = null as any }): JSX.Element => {
     if (cometBootstrapBalance == undefined || cometPairBalance == undefined) {
       return undefined;
     }
+    setCometBalances([cometBootstrapBalance, cometPairBalance]);
     return [cometBootstrapBalance, cometPairBalance];
   };
 
@@ -217,6 +211,7 @@ export const BootstrapProvider = ({ children = null as any }): JSX.Element => {
     let sim = await simulateOperation(op);
     if (SorobanRpc.Api.isSimulationSuccess(sim) && sim.result?.retval != undefined) {
       let balance = scValToBigInt(sim.result.retval);
+      setCometTotalSupply(balance);
       return balance;
     } else {
       console.error('Failed to load balance: ', sim);
@@ -295,7 +290,6 @@ export const BootstrapProvider = ({ children = null as any }): JSX.Element => {
         cometTotalSupply,
         pairWalletBalance,
         setId,
-        setBootstrapperId,
         setSelectedOption,
         fetchBootstrapperConfig,
         fetchBootstrap,

@@ -43,13 +43,14 @@ export interface IWalletContext {
     operation: xdr.Operation
   ) => Promise<SorobanRpc.Api.SimulateTransactionResponse>;
   createBootstrap: (bootstrapperId: string, params: BootstrapParams) => void;
-  joinBootstrap: (bootstrapperId: string, id: number, amount: bigint) => void;
-  exitBootstrap: (bootstrapperId: string, id: number, amount: bigint) => void;
-  closeBootstrap: (bootstrapperId: string, id: number) => void;
-  claimBootstrap: (bootstrapperId: string, id: number) => void;
-  refundBootstrap: (bootstrapperId: string, id: number) => void;
+  joinBootstrap: (bootstrapperId: string, id: number, amount: bigint) => Promise<boolean>;
+  exitBootstrap: (bootstrapperId: string, id: number, amount: bigint) => Promise<boolean>;
+  closeBootstrap: (bootstrapperId: string, id: number) => Promise<boolean>;
+  claimBootstrap: (bootstrapperId: string, id: number) => Promise<boolean>;
+  refundBootstrap: (bootstrapperId: string, id: number) => Promise<boolean>;
   fetchBalance: (tokenId: string, userId: string) => Promise<bigint | undefined>;
   getNetworkDetails(): Promise<Network>;
+  getLatestLedger(): Promise<number>;
 }
 
 export enum TxStatus {
@@ -251,7 +252,7 @@ export const WalletProvider = ({ children = null as any }): JSX.Element => {
     }
   }
 
-  async function invokeSorobanOperation(operation: xdr.Operation) {
+  async function invokeSorobanOperation(operation: xdr.Operation): Promise<boolean> {
     try {
       const account = await rpc.getAccount(walletAddress);
       const tx_builder = new TransactionBuilder(account, {
@@ -269,17 +270,18 @@ export const WalletProvider = ({ children = null as any }): JSX.Element => {
         let error = parseError(simResponse);
         setFailureMessage(ContractErrorType[error.type]);
         setTxStatus(TxStatus.FAIL);
-        return;
+        return false;
       }
       const assembled_tx = SorobanRpc.assembleTransaction(transaction, simResponse).build();
 
       const signedTx = await sign(assembled_tx.toXDR());
       const tx = new Transaction(signedTx, network.passphrase);
-      await sendTransaction(tx);
+      return await sendTransaction(tx);
     } catch (e: any) {
       console.error('Failed submitting transaction: ', e);
       setFailureMessage(e?.message);
       setTxStatus(TxStatus.FAIL);
+      return false;
     }
   }
 
@@ -302,6 +304,10 @@ export const WalletProvider = ({ children = null as any }): JSX.Element => {
       console.error('Failed to get network details from freighter', e);
       return network;
     }
+  }
+
+  async function getLatestLedger(): Promise<number> {
+    return (await rpc.getLatestLedger()).sequence;
   }
 
   async function createBootstrap(bootstrapId: string, params: BootstrapParams) {
@@ -352,7 +358,7 @@ export const WalletProvider = ({ children = null as any }): JSX.Element => {
         nativeToScVal(amount, { type: 'i128' }),
       ]
     );
-    await invokeSorobanOperation(op);
+    return await invokeSorobanOperation(op);
   }
 
   async function exitBootstrap(bootstrapId: string, id: number, amount: bigint) {
@@ -367,13 +373,13 @@ export const WalletProvider = ({ children = null as any }): JSX.Element => {
         nativeToScVal(amount, { type: 'i128' }),
       ]
     );
-    await invokeSorobanOperation(op);
+    return await invokeSorobanOperation(op);
   }
 
   async function closeBootstrap(bootstrapId: string, id: number) {
     let bootstrapper = new Contract(bootstrapId);
     let op = bootstrapper.call('close', ...[nativeToScVal(id, { type: 'u32' })]);
-    await invokeSorobanOperation(op);
+    return await invokeSorobanOperation(op);
   }
 
   async function claimBootstrap(bootstrapId: string, id: number) {
@@ -387,7 +393,7 @@ export const WalletProvider = ({ children = null as any }): JSX.Element => {
         nativeToScVal(id, { type: 'u32' }),
       ]
     );
-    await invokeSorobanOperation(op);
+    return await invokeSorobanOperation(op);
   }
 
   async function refundBootstrap(bootstrapId: string, id: number) {
@@ -401,7 +407,7 @@ export const WalletProvider = ({ children = null as any }): JSX.Element => {
         nativeToScVal(id, { type: 'u32' }),
       ]
     );
-    await invokeSorobanOperation(op);
+    return await invokeSorobanOperation(op);
   }
 
   async function fetchBalance(tokenId: string, userId: string): Promise<bigint | undefined> {
@@ -440,6 +446,7 @@ export const WalletProvider = ({ children = null as any }): JSX.Element => {
         claimBootstrap,
         refundBootstrap,
         getNetworkDetails,
+        getLatestLedger,
         fetchBalance,
       }}
     >

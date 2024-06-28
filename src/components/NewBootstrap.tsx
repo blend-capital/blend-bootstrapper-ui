@@ -7,20 +7,20 @@ import StackedText from './common/StackedText';
 import LabeledInput from './common/LabeledInput';
 import { scaleNumber } from '../utils/numberFormatter';
 import { isValidAddress } from '../utils/validation';
-import { nativeToScVal } from '@stellar/stellar-sdk';
 
 export function NewBootstrap() {
   const { bootstrapperId, bootstrapperConfig } = useBootstrapper();
-  const [poolId, setPoolId] = useState<string | undefined>(undefined);
+  const { createBootstrap, walletAddress, fetchBalance, connected, getLatestLedger } = useWallet();
 
+  const [poolId, setPoolId] = useState<string | undefined>(undefined);
   const [amount, setAmount] = useState<string | undefined>(undefined);
   const [pairMinimumAmount, setPairMinimumAmount] = useState<string | undefined>(undefined);
-  const [closeLedger, setCloseLedger] = useState<string | undefined>(undefined);
-  const { createBootstrap, walletAddress, fetchBalance, connected } = useWallet();
+  const [duration, setDuration] = useState<string | undefined>(undefined);
   const [tokenIndex, setTokenIndex] = useState<number | undefined>(undefined);
   const [bootstrapWalletBalance, setBootstrapWalletBalance] = useState<bigint | undefined>(
     undefined
   );
+
   useEffect(() => {
     if (
       tokenIndex !== undefined &&
@@ -75,28 +75,33 @@ export function NewBootstrap() {
 
   function SubmitTx() {
     if (
-      walletAddress &&
-      bootstrapperId &&
+      connected &&
       poolId &&
       amount &&
       pairMinimumAmount &&
-      closeLedger &&
+      duration &&
       tokenIndex !== undefined
     ) {
-      createBootstrap(bootstrapperId, {
-        amount: BigInt(scaleNumber(amount)),
-        bootstrapper: walletAddress,
-        close_ledger: parseInt(closeLedger),
-        pair_min: BigInt(scaleNumber(pairMinimumAmount)),
-        pool: poolId,
-        token_index: tokenIndex,
+      getLatestLedger().then((ledger) => {
+        createBootstrap(bootstrapperId, {
+          amount: BigInt(scaleNumber(amount)),
+          bootstrapper: walletAddress,
+          close_ledger: parseInt(duration) + ledger,
+          pair_min: BigInt(scaleNumber(pairMinimumAmount)),
+          pool: poolId,
+          token_index: tokenIndex,
+        });
       });
     }
   }
   const isValidBootstrapAmount =
-    !!bootstrapWalletBalance && !!amount ? bootstrapWalletBalance > BigInt(amount) : true;
+    !!bootstrapWalletBalance && !!amount
+      ? bootstrapWalletBalance > BigInt(scaleNumber(amount))
+      : true;
   const isValidPoolId = !!poolId && isValidAddress(poolId);
   const isValidTokenIndex = tokenIndex !== undefined && (tokenIndex == 0 || tokenIndex == 1);
+  const isValidBootstrapDuration =
+    !!duration && parseInt(duration) >= 17280 && parseInt(duration) <= 241920;
   return (
     <Box
       sx={{
@@ -117,19 +122,64 @@ export function NewBootstrap() {
         disabled={poolId ? !isValidPoolId : false}
         errorMessage="Invalid Pool Address"
       />
-      <LabeledInput
-        label={'Token Index'}
-        placeHolder={'Enter Token Index'}
-        value={tokenIndex}
-        type="number"
-        onChange={function (value: string): void {
-          const tokenId = parseInt(value);
-          if (!isNaN(tokenId)) setTokenIndex(tokenId);
-          else setTokenIndex(undefined);
+      <Container
+        sx={{
+          display: 'flex',
+          justifyContent: 'flex-start',
+          flexDirection: 'row',
+          width: '50%',
+          margin: '0px 0',
+          alignItems: 'center',
         }}
-        disabled={tokenIndex !== undefined ? !isValidTokenIndex : false}
-        errorMessage="Invalid Token Index (0 or 1)"
-      />
+      >
+        <label style={{ width: '110px', textAlign: 'left', marginRight: '10px' }}>
+          {'Bootstrap Token'}
+        </label>
+        <Container
+          sx={{
+            flexDirection: 'row',
+            padding: 0,
+            justifyContent: 'flex-start',
+            flexGrow: 1,
+            alignItems: 'center',
+          }}
+        >
+          <button
+            onClick={() => {
+              setTokenIndex(1);
+            }}
+            style={{
+              background:
+                tokenIndex === 1
+                  ? 'linear-gradient(45deg, #FDDC5C, #FDDC5C 50%, #FDDC5C 50%, #FDDC5C)'
+                  : '#242424',
+
+              border: '1px solid',
+              color: tokenIndex === 1 ? '#242424' : '#FDDC5C',
+              borderRadius: '4px',
+              marginRight: '10px',
+              borderColor: '#FDDC5C',
+            }}
+          >
+            USDC
+          </button>
+          <button
+            onClick={() => setTokenIndex(0)}
+            style={{
+              background:
+                tokenIndex === 0
+                  ? 'linear-gradient(45deg, #FDDC5C, #FDDC5C 50%, #FDDC5C 50%, #FDDC5C)'
+                  : '#242424',
+              color: tokenIndex === 0 ? '#242424' : '#FDDC5C',
+              border: '1px solid',
+              borderRadius: '4px',
+              borderColor: '#FDDC5C',
+            }}
+          >
+            BLND
+          </button>
+        </Container>
+      </Container>
       <LabeledInput
         label={'Amount'}
         placeHolder={'Enter Bootstrap Amount'}
@@ -151,13 +201,15 @@ export function NewBootstrap() {
         }}
       />
       <LabeledInput
-        label={'Close Ledger'}
-        placeHolder={'Enter Ledger to Close Bootstrap'}
+        label={'Bootstrap Duration'}
+        placeHolder={'Enter length of bootstrap in ledgers'}
         type="number"
-        value={closeLedger}
+        value={duration}
         onChange={function (input: string): void {
-          setCloseLedger(input);
+          setDuration(input);
         }}
+        disabled={duration !== undefined && duration !== '' ? !isValidBootstrapDuration : false}
+        errorMessage="Duration must be between 17280-241920 ledgers"
       />
       <button
         onClick={() => SubmitTx()}
@@ -166,7 +218,7 @@ export function NewBootstrap() {
           !isValidTokenIndex ||
           !isValidBootstrapAmount ||
           !pairMinimumAmount ||
-          !closeLedger
+          !duration
         }
       >
         Submit

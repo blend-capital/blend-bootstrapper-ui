@@ -6,13 +6,19 @@ import Box from './common/Box';
 import LabeledInput from './common/LabeledInput';
 
 export function RefundBootstrap() {
-  const { bootstrapperId, userDeposit, id, setId, bootstrap } = useBootstrapper();
+  const { bootstrapperId, userDeposit, id, setId, bootstrap, fetchBootstrap, fetchUserDeposit } =
+    useBootstrapper();
 
-  const { refundBootstrap, connected } = useWallet();
+  const { refundBootstrap, connected, walletAddress } = useWallet();
 
   function SubmitTx() {
-    if (bootstrapperId && id != undefined) {
-      refundBootstrap(bootstrapperId, id);
+    if (id != undefined && connected) {
+      refundBootstrap(bootstrapperId, id).then((success) => {
+        if (success) {
+          fetchBootstrap(id);
+          fetchUserDeposit(id, walletAddress);
+        }
+      });
     }
   }
 

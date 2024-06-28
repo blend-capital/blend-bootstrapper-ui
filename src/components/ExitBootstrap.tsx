@@ -24,13 +24,20 @@ export function ExitBootstrap() {
     cometTotalSupply,
     userDeposit,
     calculateClaimAmount,
+    fetchBootstrap,
+    fetchUserDeposit,
   } = useBootstrapper();
 
-  const { exitBootstrap } = useWallet();
+  const { exitBootstrap, connected, walletAddress } = useWallet();
 
   function SubmitTx() {
-    if (bootstrapperId && id != undefined && amount) {
-      exitBootstrap(bootstrapperId, id, BigInt(scaleNumber(amount)));
+    if (id != undefined && amount && connected) {
+      exitBootstrap(bootstrapperId, id, BigInt(scaleNumber(amount))).then((success) => {
+        if (success) {
+          fetchBootstrap(id);
+          fetchUserDeposit(id, walletAddress);
+        }
+      });
     }
   }
 
