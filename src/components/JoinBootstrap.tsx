@@ -23,8 +23,10 @@ export function JoinBootstrap() {
     cometTotalSupply,
     pairWalletBalance,
     calculateClaimAmount,
+    fetchBootstrap,
+    fetchUserDeposit,
   } = useBootstrapper();
-  const { joinBootstrap } = useWallet();
+  const { joinBootstrap, connected, walletAddress } = useWallet();
 
   useEffect(() => {
     if (bootstrap && bootstrapperConfig && amount && cometBalances && cometTotalSupply) {
@@ -36,26 +38,31 @@ export function JoinBootstrap() {
 
       const newPairAmount = Number(bootstrap.data.pair_amount) + scaledAmount;
 
-      const newSpotPrice =
+      setNewSpotPrice(
         newPairAmount /
-        (pairTokenData.weight / 100) /
-        (Number(bootstrap.data.bootstrap_amount) / (bootstrapTokenData.weight / 100));
-      setNewSpotPrice(newSpotPrice);
+          (pairTokenData.weight / 100) /
+          (Number(bootstrap.data.bootstrap_amount) / (bootstrapTokenData.weight / 100))
+      );
 
       let amountToClaim = calculateClaimAmount(scaledAmount);
       setClaimAmount(amountToClaim ? formatNumber(amountToClaim) : undefined);
     }
-  }, [cometBalances, bootstrap, id, amount, cometTotalSupply, bootstrapperConfig]);
+  }, [cometBalances, bootstrap, id, amount, cometTotalSupply]);
 
   function SubmitTx() {
-    if (bootstrapperId && id != undefined && amount) {
-      joinBootstrap(bootstrapperId, id, BigInt(scaleNumber(amount)));
+    if (id != undefined && amount && connected) {
+      joinBootstrap(bootstrapperId, id, BigInt(scaleNumber(amount))).then((success) => {
+        if (success) {
+          fetchBootstrap(id);
+          fetchUserDeposit(id, walletAddress);
+        }
+      });
     }
   }
 
   const isValidBootstrap = !!bootstrap && bootstrap.status === BootstrapStatus.Active;
-  const isValidAmount = !!pairWalletBalance && !!amount && pairWalletBalance > BigInt(amount);
-
+  const isValidAmount =
+    !!pairWalletBalance && !!amount && pairWalletBalance >= BigInt(scaleNumber(amount));
   return (
     <Box
       sx={{
@@ -92,6 +99,7 @@ export function JoinBootstrap() {
           setAmount(input);
         }}
         disabled={amount ? !isValidAmount : false}
+        errorMessage="Amount exceeds wallet balance"
       />
 
       {claimAmount != undefined && bootstrap && (

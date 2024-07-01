@@ -6,9 +6,12 @@ import Box from './common/Box';
 import LabeledInput from './common/LabeledInput';
 import Container from './common/Container';
 import { BootstrapStatus } from '../types';
+import { formatNumber } from '../utils/numberFormatter';
+import { CometBalances } from './SpotPrice';
+import { UserBalances } from './UserBalances';
 
 export function ClaimBootstrap() {
-  const [claimAmount, setClaimAmount] = useState<number | undefined>(undefined);
+  const [claimAmount, setClaimAmount] = useState<string | undefined>(undefined);
   const {
     bootstrapperId,
     bootstrap,
@@ -18,18 +21,27 @@ export function ClaimBootstrap() {
     bootstrapperConfig,
     cometBalances,
     cometTotalSupply,
+    fetchBootstrap,
+    fetchUserDeposit,
+    userDeposit,
   } = useBootstrapper();
 
-  const { claimBootstrap } = useWallet();
+  const { claimBootstrap, walletAddress, connected } = useWallet();
 
   function SubmitTx() {
-    if (bootstrapperId && id != undefined) {
-      claimBootstrap(bootstrapperId, id);
+    if (id != undefined && connected) {
+      claimBootstrap(bootstrapperId, id).then((success) => {
+        if (success) {
+          fetchBootstrap(id);
+          fetchUserDeposit(id, walletAddress);
+        }
+      });
     }
   }
   useEffect(() => {
-    setClaimAmount(calculateClaimAmount(0));
-  }, [bootstrap, bootstrapperConfig, cometBalances, cometTotalSupply, id]);
+    const amountToClaim = calculateClaimAmount(0);
+    setClaimAmount(amountToClaim !== undefined ? formatNumber(amountToClaim) : undefined);
+  }, [bootstrap, bootstrapperConfig, cometBalances, cometTotalSupply, id, userDeposit]);
 
   return (
     <Box
@@ -40,6 +52,10 @@ export function ClaimBootstrap() {
     >
       <h2>Claim Bootstrap</h2>
       <BootstrapData />
+      <Container sx={{ flexDirection: 'row', justifyContent: 'center', marginTop: '-20px' }}>
+        <CometBalances />
+        <UserBalances />
+      </Container>
       <LabeledInput
         label={'Bootstrap Id'}
         placeHolder={'Enter Bootstrap Id'}

@@ -14,7 +14,7 @@ import { useWallet } from './wallet';
 import { getRpc } from '../utils/rpc';
 
 export interface IBootstrapContext {
-  bootstrapperId: string | undefined;
+  bootstrapperId: string;
   selectedOption: string | undefined;
   bootstrapperConfig: BootstrapperConfig | undefined;
   bootstrap: Bootstrap | undefined;
@@ -23,13 +23,16 @@ export interface IBootstrapContext {
   cometBalances: bigint[] | undefined;
   cometTotalSupply: bigint | undefined;
   pairWalletBalance: number | undefined;
-  setBootstrapperId: (id: string) => void;
   setSelectedOption: (option: string) => void;
   setId: (id: number | undefined) => void;
   fetchBootstrapperConfig: () => Promise<BootstrapperConfig | undefined>;
   fetchBootstrap: (id: number) => Promise<Bootstrap | undefined>;
   fetchUserDeposit: (id: number, userId: string) => Promise<UserDeposit | undefined>;
-  fetchCometBalances: () => Promise<bigint[] | undefined>;
+  fetchCometBalances: (
+    bootstrapperConfig: BootstrapperConfig,
+    bootstrap: Bootstrap
+  ) => Promise<bigint[] | undefined>;
+  fetchCometTotalSupply: (cometId: string) => Promise<bigint | undefined>;
   calculateClaimAmount: (amount: number) => number | undefined;
 }
 
@@ -37,8 +40,7 @@ const BootstrapContext = React.createContext<IBootstrapContext | undefined>(unde
 
 export const BootstrapProvider = ({ children = null as any }): JSX.Element => {
   const { simulateOperation, fetchBalance, connected, walletAddress } = useWallet();
-
-  const [bootstrapperId, setBootstrapperId] = useState<string | undefined>(undefined);
+  const bootstrapperId = import.meta.env.VITE_BOOTSTRAPPER_ADDRESS;
   const [id, setId] = useState<number | undefined>(undefined);
   const [bootstrap, setBootstrap] = useState<Bootstrap | undefined>(undefined);
   const [selectedOption, setSelectedOption] = useState<string | undefined>(undefined);
@@ -53,111 +55,67 @@ export const BootstrapProvider = ({ children = null as any }): JSX.Element => {
   // wallet state
 
   useEffect(() => {
-    if (bootstrapperId != undefined) {
-      fetchBootstrapperConfig().then((bootstrapperConfig) => {
-        if (bootstrapperConfig) {
-          fetchCometTotalSupply(bootstrapperConfig.backstopTokenId).then((cometTotalSupply) => {
-            setCometTotalSupply(cometTotalSupply);
-          });
-        }
-      });
+    if (id != undefined) {
+      loadBootstrapData(id);
     }
-  }, [bootstrapperId]);
-
-  useEffect(() => {
-    if (bootstrapperId != undefined && id != undefined) {
-      fetchBootstrap(id).then((bootstrap) => {
-        if (bootstrap != undefined) {
-          setBootstrap(bootstrap);
-        } else {
-          setBootstrap(undefined);
-        }
-      });
-
-      if (connected) {
-        fetchUserDeposit(id, walletAddress).then((userDeposit) => {
-          setUserDeposit(userDeposit);
-        });
-      }
-    }
-  }, [bootstrapperId, id, connected, bootstrapperConfig]);
-
-  useEffect(() => {
-    fetchCometBalances().then((cometBalances) => {
-      setCometBalances(cometBalances);
-    });
-    if (connected && bootstrap && bootstrapperConfig) {
-      let pairTokenId = bootstrapperConfig.cometTokenData[1 ^ bootstrap.config.token_index].address;
-      fetchBalance(pairTokenId, walletAddress)
-        .then((balance) => {
-          setPairWalletBalance(Number(balance));
-        })
-        .catch((error) => console.error(error));
-    }
-  }, [bootstrap, bootstrapperConfig, bootstrapperId]);
+  }, [id, connected]);
 
   const fetchBootstrapperConfig = async (): Promise<BootstrapperConfig | undefined> => {
-    if (bootstrapperId != undefined) {
-      const configLedgerKey = xdr.LedgerKey.contractData(
-        new xdr.LedgerKeyContractData({
-          contract: Address.fromString(bootstrapperId).toScAddress(),
-          key: xdr.ScVal.scvLedgerKeyContractInstance(),
-          durability: xdr.ContractDataDurability.persistent(),
-        })
-      );
-      const responseEntries = await rpc.getLedgerEntries(...[configLedgerKey]);
+    const configLedgerKey = xdr.LedgerKey.contractData(
+      new xdr.LedgerKeyContractData({
+        contract: Address.fromString(bootstrapperId).toScAddress(),
+        key: xdr.ScVal.scvLedgerKeyContractInstance(),
+        durability: xdr.ContractDataDurability.persistent(),
+      })
+    );
+    const responseEntries = await rpc.getLedgerEntries(...[configLedgerKey]);
 
-      let backstopId: string | undefined;
-      let backstopTokenId: string | undefined;
-      let cometTokenData: CometTokenData[] = [];
-      for (const entry of responseEntries.entries) {
-        const ledgerData = entry.val.contractData();
-        if (ledgerData.key().switch() == xdr.ScValType.scvLedgerKeyContractInstance()) {
-          ledgerData
-            .val()
-            .instance()
-            .storage()
-            ?.map((entry) => {
-              const key = scValToNative(entry.key());
-              const value = scValToNative(entry.val());
-              if (key == 'Bstop') backstopId = value;
-              else if (key == 'BstopTkn') backstopTokenId = value;
-              else if (key == 'Comet') {
-                value.map((tokenData: { address: string; weight: bigint }) => {
-                  cometTokenData.push({
-                    address: tokenData.address,
-                    weight: Number(tokenData.weight) / 100000,
-                  });
+    let backstopId: string | undefined;
+    let backstopTokenId: string | undefined;
+    let cometTokenData: CometTokenData[] = [];
+    for (const entry of responseEntries.entries) {
+      const ledgerData = entry.val.contractData();
+      if (ledgerData.key().switch() == xdr.ScValType.scvLedgerKeyContractInstance()) {
+        ledgerData
+          .val()
+          .instance()
+          .storage()
+          ?.map((entry) => {
+            const key = scValToNative(entry.key());
+            const value = scValToNative(entry.val());
+            if (key == 'Bstop') backstopId = value;
+            else if (key == 'BstopTkn') backstopTokenId = value;
+            else if (key == 'Comet') {
+              value.map((tokenData: { address: string; weight: bigint }) => {
+                cometTokenData.push({
+                  address: tokenData.address,
+                  weight: Number(tokenData.weight) / 100000,
                 });
-              }
-            });
-          if (
-            backstopId == undefined ||
-            backstopTokenId == undefined ||
-            cometTokenData.length == 0
-          ) {
-            console.error('Unable to load bootstrapper config');
-          } else {
-            setBootstrapperConfig({ backstopId, backstopTokenId, cometTokenData });
-            return { backstopId, backstopTokenId, cometTokenData } as BootstrapperConfig;
-          }
+              });
+            }
+          });
+        if (backstopId == undefined || backstopTokenId == undefined || cometTokenData.length == 0) {
+          console.error('Unable to load bootstrapper config');
+        } else {
+          setBootstrapperConfig({ backstopId, backstopTokenId, cometTokenData });
+          return { backstopId, backstopTokenId, cometTokenData } as BootstrapperConfig;
         }
       }
     }
+
     return undefined;
   };
   const fetchBootstrap = async (id: number): Promise<Bootstrap | undefined> => {
-    if (bootstrapperId == undefined) {
-      return undefined;
-    }
     let bootstrapper = new Contract(bootstrapperId);
     let bootstrapOp = bootstrapper.call('get_bootstrap', ...[nativeToScVal(id, { type: 'u32' })]);
     let sim = await simulateOperation(bootstrapOp);
     if (SorobanRpc.Api.isSimulationSuccess(sim) && sim.result?.retval != undefined) {
       let bootstrap = scValToNative(sim.result.retval);
+      setBootstrap(bootstrap as Bootstrap);
       return bootstrap as Bootstrap;
     } else {
       console.error('Failed to load bootstrap: ', sim);
+      setBootstrap(undefined);
       return undefined;
     }
   };
@@ -190,13 +148,15 @@ export const BootstrapProvider = ({ children = null as any }): JSX.Element => {
     if (entry == undefined) {
       return undefined;
     }
+
+    setUserDeposit(scValToNative(entry.val.contractData().val()) as UserDeposit);
     return scValToNative(entry.val.contractData().val());
   };
 
-  const fetchCometBalances = async (): Promise<[bigint, bigint] | undefined> => {
-    if (bootstrapperId == undefined || bootstrapperConfig == undefined || bootstrap == undefined) {
-      return undefined;
-    }
+  const fetchCometBalances = async (
+    bootstrapperConfig: BootstrapperConfig,
+    bootstrap: Bootstrap
+  ): Promise<[bigint, bigint] | undefined> => {
     let cometBootstrapBalance = await fetchBalance(
       bootstrapperConfig.cometTokenData[bootstrap.config.token_index].address,
       bootstrapperConfig.backstopTokenId
@@ -208,6 +168,7 @@ export const BootstrapProvider = ({ children = null as any }): JSX.Element => {
     if (cometBootstrapBalance == undefined || cometPairBalance == undefined) {
       return undefined;
     }
+    setCometBalances([cometBootstrapBalance, cometPairBalance]);
     return [cometBootstrapBalance, cometPairBalance];
   };
 
@@ -216,7 +177,9 @@ export const BootstrapProvider = ({ children = null as any }): JSX.Element => {
     let op = contract.call('get_total_supply', ...[]);
     let sim = await simulateOperation(op);
     if (SorobanRpc.Api.isSimulationSuccess(sim) && sim.result?.retval != undefined) {
+      console.log();
       let balance = scValToBigInt(sim.result.retval);
+      setCometTotalSupply(balance);
       return balance;
     } else {
       console.error('Failed to load balance: ', sim);
@@ -229,8 +192,7 @@ export const BootstrapProvider = ({ children = null as any }): JSX.Element => {
       bootstrap == undefined ||
       bootstrapperConfig == undefined ||
       cometBalances == undefined ||
-      cometTotalSupply == undefined ||
-      amount == 0
+      cometTotalSupply == undefined
     ) {
       return undefined;
     }
@@ -282,6 +244,28 @@ export const BootstrapProvider = ({ children = null as any }): JSX.Element => {
     }
   };
 
+  async function loadBootstrapData(id: number) {
+    let bootstrapperConfig = await fetchBootstrapperConfig();
+    if (bootstrapperConfig) {
+      await fetchCometTotalSupply(bootstrapperConfig?.backstopTokenId);
+
+      if (id !== undefined) {
+        let bootstrap = await fetchBootstrap(id);
+        if (bootstrap) {
+          await fetchCometBalances(bootstrapperConfig, bootstrap);
+          if (connected) {
+            await fetchUserDeposit(id, walletAddress);
+
+            let pairTokenId =
+              bootstrapperConfig.cometTokenData[1 ^ bootstrap.config.token_index].address;
+            let pairWalletBal = await fetchBalance(pairTokenId, walletAddress);
+            setPairWalletBalance(Number(pairWalletBal));
+          }
+        }
+      }
+    }
+  }
+
   return (
     <BootstrapContext.Provider
       value={{
@@ -295,12 +279,12 @@ export const BootstrapProvider = ({ children = null as any }): JSX.Element => {
         cometTotalSupply,
         pairWalletBalance,
         setId,
-        setBootstrapperId,
         setSelectedOption,
         fetchBootstrapperConfig,
         fetchBootstrap,
         fetchUserDeposit,
         fetchCometBalances,
+        fetchCometTotalSupply,
         calculateClaimAmount,
       }}
     >

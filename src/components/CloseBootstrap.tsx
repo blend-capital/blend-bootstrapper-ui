@@ -6,11 +6,15 @@ import Box from './common/Box';
 import LabeledInput from './common/LabeledInput';
 
 export function CloseBootstrap() {
-  const { bootstrapperId, id, setId, bootstrap } = useBootstrapper();
-  const { closeBootstrap } = useWallet();
+  const { bootstrapperId, id, setId, bootstrap, fetchBootstrap } = useBootstrapper();
+  const { closeBootstrap, connected } = useWallet();
   function SubmitTx() {
-    if (bootstrapperId && id != undefined) {
-      closeBootstrap(bootstrapperId, id);
+    if (id != undefined && connected) {
+      closeBootstrap(bootstrapperId, id).then((success) => {
+        if (success) {
+          fetchBootstrap(id);
+        }
+      });
     }
   }
   return (

@@ -24,13 +24,20 @@ export function ExitBootstrap() {
     cometTotalSupply,
     userDeposit,
     calculateClaimAmount,
+    fetchBootstrap,
+    fetchUserDeposit,
   } = useBootstrapper();
 
-  const { exitBootstrap } = useWallet();
+  const { exitBootstrap, connected, walletAddress } = useWallet();
 
   function SubmitTx() {
-    if (bootstrapperId && id != undefined && amount) {
-      exitBootstrap(bootstrapperId, id, BigInt(scaleNumber(amount)));
+    if (id != undefined && amount && connected) {
+      exitBootstrap(bootstrapperId, id, BigInt(scaleNumber(amount))).then((success) => {
+        if (success) {
+          fetchBootstrap(id);
+          fetchUserDeposit(id, walletAddress);
+        }
+      });
     }
   }
 
@@ -43,8 +50,7 @@ export function ExitBootstrap() {
       const bootstrapTokenData = bootstrapperConfig.cometTokenData[bootstrapIndex];
       const pairTokenData = bootstrapperConfig.cometTokenData[pairTokenIndex];
 
-      const newPairAmount = Number(bootstrap.data.pair_amount) - parseInt(amount);
-
+      const newPairAmount = Number(bootstrap.data.pair_amount) - scaledAmount;
       const newSpotPrice =
         newPairAmount /
         (pairTokenData.weight / 100) /
@@ -52,12 +58,13 @@ export function ExitBootstrap() {
       setNewSpotPrice(newSpotPrice);
     }
     let amountToClaim = calculateClaimAmount(scaledAmount * -1);
-    setClaimAmount(amountToClaim ? formatNumber(amountToClaim) : undefined);
-  }, [cometBalances, bootstrap, id, amount, cometTotalSupply, bootstrapperConfig]);
+
+    setClaimAmount(amountToClaim !== undefined ? formatNumber(amountToClaim) : undefined);
+  }, [cometBalances, bootstrap, id, amount, cometTotalSupply, bootstrapperConfig, userDeposit]);
 
   const isValidBootstrap = !!bootstrap && bootstrap.status === BootstrapStatus.Active;
   const isValidAmount =
-    !!userDeposit && !!amount && userDeposit.amount > BigInt(scaleNumber(amount));
+    !!userDeposit && !!amount && userDeposit.amount >= BigInt(scaleNumber(amount));
   return (
     <Box
       sx={{
@@ -95,7 +102,7 @@ export function ExitBootstrap() {
         disabled={amount !== undefined && amount !== '' ? !isValidAmount : false}
         errorMessage="Amount exceeds user deposit"
       />
-      {claimAmount != undefined && bootstrap && (
+      {claimAmount != undefined && id !== undefined && (
         <Container sx={{ flexDirection: 'column', justifyContent: 'center' }}>
           {amount && parseInt(amount) > 0 ? (
             <p

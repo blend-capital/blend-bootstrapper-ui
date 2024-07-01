@@ -47,6 +47,6 @@ export interface BootstrapperConfig {
 
 export interface UserDeposit {
   amount: bigint;
-  claimed: bigint;
-  refunded: bigint;
+  claimed: boolean;
+  refunded: boolean;
 }

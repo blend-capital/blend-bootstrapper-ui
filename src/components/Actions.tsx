@@ -7,12 +7,8 @@ import { ClaimBootstrap } from './ClaimBootstrap';
 import { CloseBootstrap } from './CloseBootstrap';
 import { RefundBootstrap } from './RefundBootstrap';
 import Container from './common/Container';
-import LabeledInput from './common/LabeledInput';
-import { isValidAddress } from '../utils/validation';
 
 export function ActionOptions() {
-  const { setBootstrapperId, bootstrapperId } = useBootstrapper();
-  const isAddress = bootstrapperId ? isValidAddress(bootstrapperId) : true;
   return (
     <Container
       sx={{
@@ -21,18 +17,6 @@ export function ActionOptions() {
         justifyContent: 'center',
       }}
     >
-      <h3>Enter a Bootstrap Contract Address to Select an Action</h3>
-      <LabeledInput
-        label={''}
-        placeHolder={'Enter Bootstrapper Address'}
-        value={bootstrapperId}
-        onChange={function (new_value: string): void {
-          setBootstrapperId(new_value);
-        }}
-        sx={{ flexDirection: 'column', height: '50px', width: '100%', justifyContent: 'center' }}
-        disabled={!isAddress}
-        errorMessage="Invalid Address"
-      />
       <Container
         sx={{
           display: 'flex',
