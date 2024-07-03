@@ -1,4 +1,5 @@
 import { TxStatus, useWallet } from '../hooks/wallet';
+import Paper from './common/Paper';
 
 export const TxStatusOverlay: React.FC = () => {
   const { txStatus, clearLastTx, lastTxFailure } = useWallet();
@@ -7,14 +8,13 @@ export const TxStatusOverlay: React.FC = () => {
     return <></>;
   }
   return (
-    <div
-      style={{
+    <Paper
+      sx={{
         position: 'fixed',
         top: 0,
         left: 0,
         height: '100%',
         width: '100%',
-        backgroundColor: 'rgba(0, 0, 0, 0.5)',
         display: 'flex',
         justifyContent: 'center',
         alignItems: 'center',
@@ -30,6 +30,6 @@ export const TxStatusOverlay: React.FC = () => {
       >
         X
       </button>
-    </div>
+    </Paper>
   );
 };

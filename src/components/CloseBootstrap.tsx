@@ -1,50 +1,67 @@
 import { useBootstrapper } from '../hooks/bootstrapContext';
 import { useWallet } from '../hooks/wallet';
-import { BootstrapStatus } from '../types';
-import { BootstrapData } from './BootstrapData';
-import Box from './common/Box';
-import LabeledInput from './common/LabeledInput';
+import { BootstrapProps } from '../types';
+import { BootstrapStatus, displayBootstrapStatus } from '../utils/bootstrapper';
+import { default as Paper } from './common/Paper';
 
-export function CloseBootstrap() {
-  const { bootstrapperId, id, setId, bootstrap, fetchBootstrap } = useBootstrapper();
-  const { closeBootstrap, connected } = useWallet();
-  function SubmitTx() {
+export function CloseBootstrap({ id }: BootstrapProps) {
+  const { bootstraps, loadBootstrap } = useBootstrapper();
+  const { submitCloseBootstrap, connect, connected } = useWallet();
+
+  const bootstrap = bootstraps.get(id);
+
+  if (bootstrap === undefined) {
+    loadBootstrap(id, true);
+    return <>Loading...</>;
+  }
+
+  if (bootstrap.status !== BootstrapStatus.Closing) {
+    return (
+      <Paper
+        sx={{
+          width: '100%',
+          flexDirection: 'column',
+          alignItems: 'center',
+          paddingBottom: '15px',
+        }}
+      >
+        <h2 style={{ marginBottom: '0px' }}>Close Bootstrap</h2>
+        <p>{`Bootstrap status must be Closing to Close. Current status is ${displayBootstrapStatus(bootstrap.status)}.`}</p>
+      </Paper>
+    );
+  }
+
+  function submitTx() {
     if (id != undefined && connected) {
-      closeBootstrap(bootstrapperId, id).then((success) => {
+      submitCloseBootstrap(id).then((success) => {
         if (success) {
-          fetchBootstrap(id);
+          loadBootstrap(id, true);
         }
       });
     }
   }
+
   return (
-    <Box
+    <Paper
       sx={{
+        width: '100%',
         flexDirection: 'column',
         alignItems: 'center',
+        paddingBottom: '15px',
       }}
     >
-      <h2>Close Bootstrap</h2>
-      <BootstrapData />
-      <LabeledInput
-        label={'Bootstrap Id'}
-        placeHolder={'Enter Bootstrap Id'}
-        type="number"
-        value={id}
-        onChange={function (value: string): void {
-          const id = parseInt(value);
-          if (!isNaN(id)) setId(id);
-          else setId(undefined);
-        }}
-        disabled={id !== undefined ? !bootstrap : false}
-        errorMessage="Invalid Bootstrap Id"
-      />
+      <h2 style={{ marginBottom: '0px' }}>Close Bootstrap</h2>
       <button
-        onClick={() => SubmitTx()}
+        onClick={() => submitTx()}
         disabled={!bootstrap || bootstrap.status != BootstrapStatus.Closing}
       >
         Submit
       </button>
-    </Box>
+      {connected ? (
+        <button onClick={() => submitTx()}>Submit</button>
+      ) : (
+        <button onClick={() => connect()}>Connect Wallet</button>
+      )}
+    </Paper>
   );
 }

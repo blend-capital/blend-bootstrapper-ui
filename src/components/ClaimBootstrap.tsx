@@ -1,82 +1,117 @@
+import { SorobanRpc, scValToNative } from '@stellar/stellar-sdk';
 import { useEffect, useState } from 'react';
 import { useBootstrapper } from '../hooks/bootstrapContext';
 import { useWallet } from '../hooks/wallet';
-import { BootstrapData } from './BootstrapData';
-import Box from './common/Box';
-import LabeledInput from './common/LabeledInput';
+import { BootstrapProps } from '../types';
+import { BootstrapStatus, displayBootstrapStatus } from '../utils/bootstrapper';
+import { formatNumber } from '../utils/formatter';
+import { ContractErrorType, parseError } from '../utils/responseParser';
 import Container from './common/Container';
-import { BootstrapStatus } from '../types';
-import { formatNumber } from '../utils/numberFormatter';
-import { CometBalances } from './SpotPrice';
-import { UserBalances } from './UserBalances';
+import { default as Paper } from './common/Paper';
 
-export function ClaimBootstrap() {
-  const [claimAmount, setClaimAmount] = useState<string | undefined>(undefined);
-  const {
-    bootstrapperId,
-    bootstrap,
-    id,
-    setId,
-    calculateClaimAmount,
-    bootstrapperConfig,
-    cometBalances,
-    cometTotalSupply,
-    fetchBootstrap,
-    fetchUserDeposit,
-    userDeposit,
-  } = useBootstrapper();
+export function ClaimBootstrap({ id }: BootstrapProps) {
+  const { bootstraps, loadBootstrap } = useBootstrapper();
+  const { submitClaimBootstrap, simClaimBootstrap, connect, walletAddress, connected } =
+    useWallet();
 
-  const { claimBootstrap, walletAddress, connected } = useWallet();
+  const bootstrap = bootstraps.get(id);
 
-  function SubmitTx() {
+  const [claimMessage, setClaimMessage] = useState<string | undefined>(undefined);
+
+  useEffect(() => {
+    if (
+      bootstrap !== undefined &&
+      walletAddress !== '' &&
+      claimMessage === undefined &&
+      (bootstrap.status === BootstrapStatus.Completed ||
+        bootstrap.status === BootstrapStatus.Cancelled) &&
+      bootstrap.userDeposit.amount !== BigInt(0) &&
+      bootstrap.userDeposit.claimed === false
+    ) {
+      console.log('Sim Claim bootstrap');
+      simClaimBootstrap(id).then((result) => {
+        if (SorobanRpc.Api.isSimulationSuccess(result)) {
+          if (result.result?.retval !== undefined) {
+            const as_bigint = scValToNative(result.result.retval) as bigint;
+            const as_string = formatNumber(as_bigint, 7);
+            setClaimMessage(as_string);
+          } else {
+            setClaimMessage('Failed to calculate claim amount.');
+          }
+        } else {
+          const error = parseError(result);
+          if (error.type === ContractErrorType.AlreadyClaimedError) {
+            setClaimMessage('Already claimed.');
+          } else if (error.type === ContractErrorType.InvalidBootstrapStatus) {
+            setClaimMessage('Unable to claim .');
+          } else {
+            setClaimMessage(`Claim failed: ${error.type}`);
+          }
+        }
+      });
+    } else if (bootstrap !== undefined) {
+      if (bootstrap.userDeposit.claimed === true) {
+        setClaimMessage('Already claimed.');
+      } else if (bootstrap.userDeposit.amount === BigInt(0)) {
+        setClaimMessage('No deposit recorded in this bootstrap.');
+      }
+    }
+  }, [walletAddress, bootstrap, claimMessage, id, simClaimBootstrap]);
+
+  if (bootstrap === undefined) {
+    loadBootstrap(id, true);
+    return <>Loading...</>;
+  }
+
+  if (
+    bootstrap.status !== BootstrapStatus.Completed &&
+    bootstrap.status !== BootstrapStatus.Cancelled
+  ) {
+    return (
+      <Paper
+        sx={{
+          width: '100%',
+          flexDirection: 'column',
+          alignItems: 'center',
+          paddingBottom: '15px',
+        }}
+      >
+        <h2 style={{ marginBottom: '0px' }}>Claim Bootstrap</h2>
+        <p>{`Bootstrap status must be Completed or Cancelled to Claim. Current status is ${displayBootstrapStatus(bootstrap.status)}.`}</p>
+      </Paper>
+    );
+  }
+
+  function submitTx() {
     if (id != undefined && connected) {
-      claimBootstrap(bootstrapperId, id).then((success) => {
+      submitClaimBootstrap(id).then((success) => {
         if (success) {
-          fetchBootstrap(id);
-          fetchUserDeposit(id, walletAddress);
+          loadBootstrap(id, true);
         }
       });
     }
   }
-  useEffect(() => {
-    const amountToClaim = calculateClaimAmount(0);
-    setClaimAmount(amountToClaim !== undefined ? formatNumber(amountToClaim) : undefined);
-  }, [bootstrap, bootstrapperConfig, cometBalances, cometTotalSupply, id, userDeposit]);
+
+  const isClaimMessageNumber = claimMessage !== undefined && !isNaN(Number(claimMessage));
 
   return (
-    <Box
+    <Paper
       sx={{
+        width: '100%',
         flexDirection: 'column',
         alignItems: 'center',
+        paddingBottom: '15px',
       }}
     >
-      <h2>Claim Bootstrap</h2>
-      <BootstrapData />
-      <Container sx={{ flexDirection: 'row', justifyContent: 'center', marginTop: '-20px' }}>
-        <CometBalances />
-        <UserBalances />
-      </Container>
-      <LabeledInput
-        label={'Bootstrap Id'}
-        placeHolder={'Enter Bootstrap Id'}
-        type="number"
-        value={id}
-        onChange={function (value: string): void {
-          const new_id = parseInt(value);
-          if (!isNaN(new_id)) setId(new_id);
-          else setId(undefined);
-        }}
-        disabled={id !== undefined ? !bootstrap : false}
-        errorMessage="Invalid Bootstrap Id"
-      />
-      {claimAmount != undefined && id != undefined ? (
+      <h2 style={{ marginBottom: '0px' }}>Claim Bootstrap</h2>
+      {isClaimMessageNumber ? (
         <Container sx={{ flexDirection: 'column', justifyContent: 'center' }}>
           <p
             style={{
               marginTop: '-5px',
             }}
           >
-            Estimated BLND-USDC LP To Claim: {claimAmount}
+            {`Claimable Backstop Deposit: ${claimMessage} BLND-USDC LP`}
           </p>
           <p
             style={{
@@ -85,19 +120,23 @@ export function ClaimBootstrap() {
               color: '#FDDC5C',
             }}
           >
-            The claim amount is an estimate and is subject to change with the amount of pair tokens
-            deposited. Tokens will be claimable after the bootstrap period ends.
+            The backstop deposit is an estimate and is subject to change with the amount of pair
+            tokens deposited. Tokens will be claimable after the bootstrap period ends. Claimed
+            tokens will be deposited directly into the pool's backstop.
           </p>
         </Container>
       ) : (
-        <></>
+        <>
+          <p>{claimMessage}</p>
+        </>
       )}
-      <button
-        onClick={() => SubmitTx()}
-        disabled={!bootstrap || bootstrap.status != BootstrapStatus.Completed}
-      >
-        Submit
-      </button>
-    </Box>
+      {connected ? (
+        <button onClick={() => submitTx()} disabled={!isClaimMessageNumber}>
+          Submit
+        </button>
+      ) : (
+        <button onClick={() => connect()}>Connect Wallet</button>
+      )}
+    </Paper>
   );
 }

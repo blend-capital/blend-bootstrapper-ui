@@ -1,14 +1,42 @@
-import { SelectableInput } from './common/SelectableInput';
-import { useBootstrapper } from '../hooks/bootstrapContext';
-import { NewBootstrap } from './NewBootstrap';
-import { JoinBootstrap } from './JoinBootstrap';
-import { ExitBootstrap } from './ExitBootstrap';
+import { useState } from 'react';
+import { BootstrapProps } from '../types';
 import { ClaimBootstrap } from './ClaimBootstrap';
 import { CloseBootstrap } from './CloseBootstrap';
+import { ExitBootstrap } from './ExitBootstrap';
+import { JoinBootstrap } from './JoinBootstrap';
 import { RefundBootstrap } from './RefundBootstrap';
 import Container from './common/Container';
+import { SelectableButton } from './common/SelectableInput';
 
-export function ActionOptions() {
+export enum BootstrapActions {
+  Create,
+  Join,
+  Exit,
+  Close,
+  Claim,
+  Refund,
+  None,
+}
+
+export function Actions({ id }: BootstrapProps) {
+  const [option, setOption] = useState<BootstrapActions>(BootstrapActions.None);
+
+  const Action = () => {
+    if (option === BootstrapActions.Join) {
+      return <JoinBootstrap id={id} />;
+    } else if (option === BootstrapActions.Exit) {
+      return <ExitBootstrap id={id} />;
+    } else if (option === BootstrapActions.Close) {
+      return <CloseBootstrap id={id} />;
+    } else if (option === BootstrapActions.Claim) {
+      return <ClaimBootstrap id={id} />;
+    } else if (option === BootstrapActions.Refund) {
+      return <RefundBootstrap id={id} />;
+    } else {
+      return <></>;
+    }
+  };
+
   return (
     <Container
       sx={{
@@ -23,34 +51,36 @@ export function ActionOptions() {
           flexWrap: 'wrap',
           justifyContent: 'center',
           flexBasis: 'content',
+          gap: '12px',
         }}
       >
-        <SelectableInput inputName={'Create'}></SelectableInput>
-        <SelectableInput inputName={'Join'}></SelectableInput>
-        <SelectableInput inputName={'Exit'}></SelectableInput>
-        <SelectableInput inputName={'Close'}></SelectableInput>
-        <SelectableInput inputName={'Claim'}></SelectableInput>
-        <SelectableInput inputName={'Refund'}></SelectableInput>
+        <SelectableButton
+          text={'Join'}
+          selected={option === BootstrapActions.Join}
+          onClick={() => setOption(BootstrapActions.Join)}
+        />
+        <SelectableButton
+          text={'Exit'}
+          selected={option === BootstrapActions.Exit}
+          onClick={() => setOption(BootstrapActions.Exit)}
+        />
+        <SelectableButton
+          text={'Close'}
+          selected={option === BootstrapActions.Close}
+          onClick={() => setOption(BootstrapActions.Close)}
+        />
+        <SelectableButton
+          text={'Claim'}
+          selected={option === BootstrapActions.Claim}
+          onClick={() => setOption(BootstrapActions.Claim)}
+        />
+        <SelectableButton
+          text={'Refund'}
+          selected={option === BootstrapActions.Refund}
+          onClick={() => setOption(BootstrapActions.Refund)}
+        />
       </Container>
+      <Action />
     </Container>
   );
-}
-
-export function DisplayAction() {
-  const { selectedOption, bootstrapperId } = useBootstrapper();
-  if (bootstrapperId == undefined || bootstrapperId == '') {
-    return <></>;
-  } else if (selectedOption == 'Create') {
-    return <NewBootstrap />;
-  } else if (selectedOption == 'Join') {
-    return <JoinBootstrap />;
-  } else if (selectedOption == 'Exit') {
-    return <ExitBootstrap />;
-  } else if (selectedOption == 'Close') {
-    return <CloseBootstrap />;
-  } else if (selectedOption == 'Claim') {
-    return <ClaimBootstrap />;
-  } else if (selectedOption == 'Refund') {
-    return <RefundBootstrap />;
-  }
 }

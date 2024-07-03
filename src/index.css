@@ -1,3 +1,11 @@
+#root {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 2rem;
+  min-height: 100vh;
+  text-align: center;
+}
+
 :root {
   font-family: Inter, system-ui, Avenir, Helvetica, Arial, sans-serif;
   line-height: 1.5;
@@ -5,29 +13,47 @@
 
   color-scheme: light dark;
   color: rgba(255, 255, 255, 0.87);
-  background-color: #242424;
+  background-color: #191B1F;
 
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-}
 
-a {
-  font-weight: 500;
-  color: #646cff;
-  text-decoration: inherit;
-}
-a:hover {
-  color: #535bf2;
+  --background-color: #191B1F;
+  --paper-color: #212429E5;
+  --primary-color: #36B04A;
+  --primary-color-opaque: #36B04A26;
+  --secondary-color: #E16BFF;
+  --secondary-color-opaque: #E16BFF26;
+  --error-color: #ff3366;
+  --error-color-opaque: #ff336626;
 }
 
 body {
   margin: 0;
   display: flex;
-  place-items: center;
-  min-width: 320px;
   min-height: 100vh;
+}
+
+.app-container {
+  width: 100%;
+  max-width: 800px;
+  min-width: 320px;
+}
+
+@media screen and (min-width: 850px) { /* 740px to account for the padding */
+  .app-container {
+    width: 800px;
+  }
+}
+
+a {
+  color: white;
+  text-decoration: inherit;
+}
+a:hover {
+  color: var(--primary-color);
 }
 
 h1 {
@@ -35,36 +61,75 @@ h1 {
   line-height: 1.1;
 }
 
+div.paper {
+  display: flex;
+  background-color: var(--paper-color);
+  border-radius: 5px;
+  margin: 6px;
+  padding: 6px;
+  box-shadow: 0px 4px 4px rgba(0, 0, 0, 0.25);
+}
+
+div.container {
+  display: flex;
+  flex-wrap: wrap;
+  border-radius: 5px;
+  margin: 6px;
+  padding: 6px;
+}
+
 button {
-  border-radius: 8px;
+  border-radius: 5px;
   border: 1px solid transparent;
   padding: 0.6em 1.2em;
   font-size: 1em;
   font-weight: 500;
   font-family: inherit;
-  background-color: #1a1a1a;
+  background-color: var(--primary-color-opaque);
+  color: var(--primary-color);
   cursor: pointer;
-  transition: border-color 0.25s;
+  transition: border-color color 0.25s;
 }
 button:hover {
-  border-color: #646cff;
+  border-color: white;
+  color: white;
 }
-button:focus,
-button:focus-visible {
-  outline: 4px auto -webkit-focus-ring-color;
+button:disabled {
+  background-color: var(--primary-color-opaque);
+  color: var(--primary-color);
+  cursor: unset
+}
+button:disabled:hover {
+  border: 1px solid transparent;
+  color: var(--primary-color);
 }
 
-@media (prefers-color-scheme: light) {
-  :root {
-    color: #213547;
-    background-color: #ffffff;
-  }
-  a:hover {
-    color: #747bff;
-  }
-  button {
-    background-color: #f9f9f9;
-  }
+button.toggle-button {
+  background-color: var(--paper-color);
+  color: var(--secondary-color);
+  cursor: pointer;
+  transition: border-color color 0.25s;
+}
+button.toggle-button:hover {
+  border-color: white;
+  color: white;
+}
+button.toggle-button.selected {
+  background-color: var(--secondary-color-opaque);
+  color: var(--secondary-color);
+}
+button.toggle-button.selected:hover {
+  border-color: transparent;
+  color: var(--secondary-color);
+  cursor: unset;
+}
+
+button.disconnect-button {
+  background-color: var(--error-color-opaque);
+  color: var(--error-color);
+}
+button.disconnect-button:hover {
+  color: white;
 }
 
 input[type='radio'] {

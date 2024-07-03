@@ -1,96 +1,111 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { useBootstrapper } from '../hooks/bootstrapContext';
 import { useWallet } from '../hooks/wallet';
-import { BootstrapData } from './BootstrapData';
-import { UserBalances } from './UserBalances';
-import Box from './common/Box';
-import LabeledInput from './common/LabeledInput';
+import { BootstrapProps } from '../types';
+import {
+  BootstrapStatus,
+  calculateClaimAmount,
+  displayBootstrapStatus,
+} from '../utils/bootstrapper';
+import { formatNumber, scaleNumber } from '../utils/formatter';
 import Container from './common/Container';
-import { CometBalances } from './SpotPrice';
-import { scaleNumber, formatNumber } from '../utils/numberFormatter';
-import { BootstrapStatus } from '../types';
+import LabeledInput from './common/LabeledInput';
+import { default as Paper } from './common/Paper';
 
-export function ExitBootstrap() {
+export function ExitBootstrap({ id }: BootstrapProps) {
+  const { bootstraps, loadBootstrap, backstopToken } = useBootstrapper();
+  const { submitExitBootstrap, connected, walletAddress, connect } = useWallet();
+
   const [amount, setAmount] = useState<string | undefined>(undefined);
-  const [newSpotPrice, setNewSpotPrice] = useState<number | undefined>(undefined);
-  const [claimAmount, setClaimAmount] = useState<string | undefined>(undefined);
-  const {
-    bootstrapperId,
-    bootstrap,
-    id,
-    setId,
-    bootstrapperConfig,
-    cometBalances,
-    cometTotalSupply,
-    userDeposit,
-    calculateClaimAmount,
-    fetchBootstrap,
-    fetchUserDeposit,
-  } = useBootstrapper();
 
-  const { exitBootstrap, connected, walletAddress } = useWallet();
+  const bootstrap = bootstraps.get(id);
 
-  function SubmitTx() {
+  if (bootstrap === undefined) {
+    loadBootstrap(id, true);
+    return <>Loading...</>;
+  }
+
+  if (bootstrap.status !== BootstrapStatus.Active) {
+    return (
+      <Paper
+        sx={{
+          width: '100%',
+          flexDirection: 'column',
+          alignItems: 'center',
+          paddingBottom: '15px',
+        }}
+      >
+        <h2 style={{ marginBottom: '0px' }}>Exit Bootstrap</h2>
+        <p>{`Bootstrap status must be Active to Exit. Current status is ${displayBootstrapStatus(bootstrap.status)}.`}</p>
+      </Paper>
+    );
+  }
+
+  function submitTx() {
     if (id != undefined && amount && connected) {
-      exitBootstrap(bootstrapperId, id, BigInt(scaleNumber(amount))).then((success) => {
+      submitExitBootstrap(id, BigInt(scaleNumber(amount))).then((success) => {
         if (success) {
-          fetchBootstrap(id);
-          fetchUserDeposit(id, walletAddress);
+          loadBootstrap(id, true);
         }
       });
     }
   }
 
-  useEffect(() => {
-    const scaledAmount = parseInt(scaleNumber(amount ? amount : '0'));
-
-    if (bootstrap && bootstrapperConfig && amount && cometBalances && cometTotalSupply) {
-      const bootstrapIndex = bootstrap.config.token_index;
-      const pairTokenIndex = 1 ^ bootstrapIndex;
-      const bootstrapTokenData = bootstrapperConfig.cometTokenData[bootstrapIndex];
-      const pairTokenData = bootstrapperConfig.cometTokenData[pairTokenIndex];
-
-      const newPairAmount = Number(bootstrap.data.pair_amount) - scaledAmount;
-      const newSpotPrice =
-        newPairAmount /
-        (pairTokenData.weight / 100) /
-        (Number(bootstrap.data.bootstrap_amount) / (bootstrapTokenData.weight / 100));
-      setNewSpotPrice(newSpotPrice);
-    }
-    let amountToClaim = calculateClaimAmount(scaledAmount * -1);
-
-    setClaimAmount(amountToClaim !== undefined ? formatNumber(amountToClaim) : undefined);
-  }, [cometBalances, bootstrap, id, amount, cometTotalSupply, bootstrapperConfig, userDeposit]);
-
   const isValidBootstrap = !!bootstrap && bootstrap.status === BootstrapStatus.Active;
-  const isValidAmount =
-    !!userDeposit && !!amount && userDeposit.amount >= BigInt(scaleNumber(amount));
+  const isAmountValidDecimals = amount !== undefined && (amount.split('.')[1]?.length ?? 0) <= 7;
+  const scaledAmount =
+    amount !== undefined && isAmountValidDecimals ? Number(scaleNumber(amount)) : 0;
+  const isValidAmountSize =
+    amount !== undefined && bootstrap.userDeposit.amount >= BigInt(scaledAmount);
+  const isValidAmount = amount !== undefined && isValidAmountSize && isAmountValidDecimals;
+  const errorMessage = isAmountValidDecimals
+    ? 'Amount exceeds deposit balance'
+    : 'Amount cannot have more than 7 decimals';
+
+  const pairTokenSymbol = bootstrap.config.token_index === 1 ? 'BLND' : 'USDC';
+  const pairIndex = bootstrap.config.token_index ^ 1;
+  const bootstrapIndex = bootstrap.config.token_index;
+
+  const cometWeights = [0.8, 0.2];
+
+  const newUserDeposit = bootstrap.userDeposit.amount - BigInt(scaledAmount);
+  const newBootstrapSpotPrice =
+    (Number(bootstrap.data.pair_amount) - scaledAmount) /
+    cometWeights[pairIndex] /
+    (Number(bootstrap.data.bootstrap_amount) / cometWeights[bootstrapIndex]);
+
+  const newClaimEstAmount = calculateClaimAmount(
+    bootstrap,
+    backstopToken,
+    (-1 * scaledAmount) / 1e7,
+    walletAddress === bootstrap.config.bootstrapper
+  );
+
   return (
-    <Box
+    <Paper
       sx={{
+        width: '100%',
         flexDirection: 'column',
         alignItems: 'center',
+        paddingBottom: '15px',
       }}
     >
-      <h2>Exit Bootstrap</h2>
-      <BootstrapData />
-      <Container sx={{ flexDirection: 'row', justifyContent: 'center' }}>
-        <CometBalances />
-        <UserBalances />
-      </Container>
-      <LabeledInput
-        label={'Bootstrap Id'}
-        placeHolder={'Enter Bootstrap Id'}
-        type="number"
-        value={id}
-        onChange={function (value: string): void {
-          const newId = parseInt(value);
-          if (!isNaN(newId)) setId(newId);
-          else setId(undefined);
+      <h2 style={{ marginBottom: '0px' }}>Exit Bootstrap</h2>
+      <Container
+        sx={{
+          display: 'flex',
+          flexDirection: 'column',
+          justifyContent: 'center',
+          flexWrap: 'wrap',
         }}
-        disabled={id !== undefined ? !bootstrap : false}
-        errorMessage="Invalid Bootstrap Id"
-      />
+      >
+        <p
+          style={{ paddingLeft: '10px', paddingRight: '10px' }}
+        >{`Your Balance: ${formatNumber(bootstrap.userPairTokenBalance)} ${pairTokenSymbol}`}</p>
+        <p
+          style={{ paddingLeft: '10px', paddingRight: '10px' }}
+        >{`Current Deposit: ${formatNumber(bootstrap.userDeposit.amount)} ${pairTokenSymbol}`}</p>
+      </Container>
       <LabeledInput
         label={'Amount'}
         placeHolder={'Enter Amount'}
@@ -100,27 +115,31 @@ export function ExitBootstrap() {
           setAmount(newAmount);
         }}
         disabled={amount !== undefined && amount !== '' ? !isValidAmount : false}
-        errorMessage="Amount exceeds user deposit"
+        errorMessage={errorMessage}
       />
-      {claimAmount != undefined && id !== undefined && (
-        <Container sx={{ flexDirection: 'column', justifyContent: 'center' }}>
-          {amount && parseInt(amount) > 0 ? (
-            <p
-              style={{
-                marginTop: '-5px',
-              }}
-            >
-              New Bootstrap Spot Price: {newSpotPrice}
-            </p>
-          ) : (
-            <></>
-          )}
+
+      {isValidAmount && (
+        <Container sx={{ flexDirection: 'column', justifyContent: 'center', width: '60%' }}>
           <p
             style={{
               marginTop: '-5px',
             }}
           >
-            Estimated BLND-USDC LP To Claim: {claimAmount}
+            {`New Deposit Amount: ${formatNumber(newUserDeposit, 7)} ${pairTokenSymbol}`}
+          </p>
+          <p
+            style={{
+              marginTop: '-5px',
+            }}
+          >
+            {`New Bootstrap BLND Spot Price: ${newBootstrapSpotPrice} ${pairTokenSymbol}`}
+          </p>
+          <p
+            style={{
+              marginTop: '-5px',
+            }}
+          >
+            {`Est. Backstop Deposit: ${newClaimEstAmount} BLND-USDC LP`}
           </p>
           <p
             style={{
@@ -129,14 +148,19 @@ export function ExitBootstrap() {
               color: '#FDDC5C',
             }}
           >
-            The claim amount is an estimate and is subject to change with the amount of pair tokens
-            deposited. Tokens will be claimable after the bootstrap period ends.
+            The backstop deposit is an estimate and is subject to change with the amount of pair
+            tokens deposited. Tokens will be claimable after the bootstrap period ends. Claimed
+            tokens will be deposited directly into the pool's backstop.
           </p>
         </Container>
       )}
-      <button onClick={() => SubmitTx()} disabled={!isValidAmount || !isValidBootstrap}>
-        Submit
-      </button>
-    </Box>
+      {connected ? (
+        <button onClick={() => submitTx()} disabled={!isValidAmount || !isValidBootstrap}>
+          Submit
+        </button>
+      ) : (
+        <button onClick={() => connect()}>Connect Wallet</button>
+      )}
+    </Paper>
   );
 }
