@@ -1,4 +1,5 @@
 import { TxStatus, useWallet } from '../hooks/wallet';
+import { Loader } from './common/Loader';
 import Paper from './common/Paper';
 
 export const TxStatusOverlay: React.FC = () => {
@@ -20,10 +21,14 @@ export const TxStatusOverlay: React.FC = () => {
         alignItems: 'center',
         color: 'white',
         fontSize: '2em',
+        gap: '12px',
       }}
     >
       {TxStatus[txStatus]}
       {txStatus === TxStatus.FAIL ? `: ${lastTxFailure}` : ''}
+      {(txStatus === TxStatus.BUILDING ||
+        txStatus === TxStatus.SIGNING ||
+        txStatus === TxStatus.SUBMITTING) && <Loader />}
       <button
         onClick={clearLastTx}
         style={{ fontSize: '1.5em', background: 'none', border: 'none' }}

@@ -51,12 +51,6 @@ export function CloseBootstrap({ id }: BootstrapProps) {
       }}
     >
       <h2 style={{ marginBottom: '0px' }}>Close Bootstrap</h2>
-      <button
-        onClick={() => submitTx()}
-        disabled={!bootstrap || bootstrap.status != BootstrapStatus.Closing}
-      >
-        Submit
-      </button>
       {connected ? (
         <button onClick={() => submitTx()}>Submit</button>
       ) : (
