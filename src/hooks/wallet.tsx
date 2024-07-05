@@ -46,8 +46,6 @@ export interface IWalletContext {
   submitCloseBootstrap: (id: number) => Promise<boolean>;
   submitClaimBootstrap: (id: number) => Promise<boolean>;
   submitRefundBootstrap: (id: number) => Promise<boolean>;
-  simClaimBootstrap: (id: number) => Promise<SorobanRpc.Api.SimulateTransactionResponse>;
-  simRefundBootstrap: (id: number) => Promise<SorobanRpc.Api.SimulateTransactionResponse>;
   fetchBalance: (tokenId: string, userId: string) => Promise<bigint | undefined>;
   getNetworkDetails(): Promise<Network>;
   getLatestLedger(): Promise<number>;
@@ -342,25 +340,6 @@ export const WalletProvider = ({ children }: WalletProviderProps): JSX.Element =
     }
   }
 
-  async function simClaimBootstrap(
-    id: number
-  ): Promise<SorobanRpc.Api.SimulateTransactionResponse> {
-    if (connected && walletAddress !== '') {
-      const bootstrapper = new BootstrapClient(bootstrapId);
-      const op = bootstrapper.claim({ from: walletAddress, id });
-      return await simulateOperation(op);
-    } else {
-      const temp_error: SorobanRpc.Api.SimulateTransactionErrorResponse = {
-        error: 'No wallet connected',
-        events: [],
-        id: '0',
-        latestLedger: 0,
-        _parsed: false,
-      };
-      return temp_error;
-    }
-  }
-
   async function submitRefundBootstrap(id: number): Promise<boolean> {
     if (connected && walletAddress !== '') {
       const bootstrapper = new BootstrapClient(bootstrapId);
@@ -368,25 +347,6 @@ export const WalletProvider = ({ children }: WalletProviderProps): JSX.Element =
       return await invokeSorobanOperation(op);
     } else {
       return false;
-    }
-  }
-
-  async function simRefundBootstrap(
-    id: number
-  ): Promise<SorobanRpc.Api.SimulateTransactionResponse> {
-    if (connected && walletAddress !== '') {
-      const bootstrapper = new BootstrapClient(bootstrapId);
-      const op = bootstrapper.refund({ from: walletAddress, id });
-      return await simulateOperation(op);
-    } else {
-      const temp_error: SorobanRpc.Api.SimulateTransactionErrorResponse = {
-        error: 'No wallet connected',
-        events: [],
-        id: '0',
-        latestLedger: 0,
-        _parsed: false,
-      };
-      return temp_error;
     }
   }
 
@@ -430,8 +390,6 @@ export const WalletProvider = ({ children }: WalletProviderProps): JSX.Element =
         submitCloseBootstrap,
         submitClaimBootstrap,
         submitRefundBootstrap,
-        simClaimBootstrap,
-        simRefundBootstrap,
         getNetworkDetails,
         getLatestLedger,
         fetchBalance,

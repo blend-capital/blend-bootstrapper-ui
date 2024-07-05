@@ -222,65 +222,170 @@ export class BootstrapClient extends Contract {
 
 /***** Math ******/
 
-export const calculateClaimAmount = (
+export interface BootstrapOutput {
+  claimAmount: number;
+  refundAmount: number;
+  claimInUSDC: number;
+}
+
+/**
+ *
+ * @param bootstrap The bootstrap to calculate the output for
+ * @param backstopToken The backstop token to use
+ * @param depositDelta Any change in the user's deposit amount (as a number in decimal form)
+ * @param bootstrapper If the user is the bootstrapper
+ * @returns BootstrapOutput
+ */
+export const calculateOutput = (
   bootstrap: BootstrapState | undefined,
   backstopToken: BackstopToken | undefined,
   depositDelta: number,
   bootstrapper: boolean
-): number | undefined => {
+): BootstrapOutput => {
   if (bootstrap == undefined || backstopToken == undefined) {
-    return undefined;
+    return {
+      claimAmount: 0,
+      refundAmount: 0,
+      claimInUSDC: 0,
+    };
   }
   const userDeposit = Number(bootstrap.userDeposit.amount) / 1e7 + depositDelta;
+  const totalPair = Number(bootstrap.data.total_pair) / 1e7 + depositDelta;
   if (userDeposit <= 0) {
-    return 0;
+    return {
+      claimAmount: 0,
+      refundAmount: 0,
+      claimInUSDC: 0,
+    };
   }
 
-  const deltaScaled = depositDelta * 1e7;
+  const { backstop_tokens, backstop_token_to_usdc } = calcBackstopTokens(
+    bootstrap,
+    backstopToken,
+    depositDelta
+  );
 
   const bootstrapIndex = bootstrap.config.token_index;
   const pairIndex = 1 ^ bootstrapIndex;
-  const newPairAmount = Number(bootstrap.data.total_pair) + deltaScaled;
-
-  const cometBalances = [backstopToken.blnd, backstopToken.usdc];
   const cometWeights = [0.8, 0.2];
 
-  const bootstrapClaimAmount =
-    (Number(bootstrap.data.bootstrap_amount) / Number(cometBalances[bootstrapIndex])) *
-    Number(backstopToken.shares);
-  const pairClaimAmount =
-    (newPairAmount / Number(cometBalances[pairIndex])) * Number(backstopToken.shares);
+  const userShare = bootstrapper
+    ? cometWeights[bootstrapIndex]
+    : (cometWeights[pairIndex] * userDeposit) / totalPair;
+  const claimAmount = backstop_tokens * userShare;
+  const claimInUSDC = claimAmount * backstop_token_to_usdc;
 
-  let claimAmount = bootstrapClaimAmount < pairClaimAmount ? bootstrapClaimAmount : pairClaimAmount;
-  const pairJoinAmount =
-    (Number(cometBalances[pairIndex]) / Number(backstopToken.shares)) * claimAmount;
-  const pairAmountLeft = userDeposit - pairJoinAmount;
-  const newCometPairBalance = Number(cometBalances[1]) + pairJoinAmount;
-  const pairSingleSide =
-    ((pairAmountLeft + Number(newCometPairBalance)) / Number(newCometPairBalance)) **
-      cometWeights[pairIndex] *
-      Number(backstopToken.shares) -
-    Number(backstopToken.shares);
-  claimAmount += pairSingleSide;
-
-  const bootstrapJoinAmount =
-    (Number(cometBalances[0]) / Number(backstopToken.shares)) * claimAmount;
-  const bootstrapAmountLeft = Number(bootstrap.data.bootstrap_amount) - bootstrapJoinAmount;
-  const newCometBootstrapBalance = Number(cometBalances[0]) + bootstrapJoinAmount;
-  const bootstrapSingleSide =
-    ((bootstrapAmountLeft + Number(newCometBootstrapBalance)) / Number(newCometBootstrapBalance)) **
-      cometWeights[bootstrapIndex] *
-      Number(backstopToken.shares) -
-    Number(backstopToken.shares);
-
-  claimAmount += bootstrapSingleSide;
-  claimAmount += Number(bootstrap.data.total_backstop_tokens);
-
-  if (bootstrapper) {
-    return (claimAmount * cometWeights[bootstrapIndex]) / 1e7;
-  } else {
-    return (((claimAmount * userDeposit * 1e7) / newPairAmount) * cometWeights[pairIndex]) / 1e7;
+  let refundAmount = 0;
+  if (bootstrap.status === BootstrapStatus.Cancelled) {
+    if (bootstrapper) {
+      refundAmount = Number(bootstrap.data.bootstrap_amount) / 1e7;
+    } else {
+      refundAmount = (Number(bootstrap.data.pair_amount) / 1e7) * userShare;
+    }
   }
+
+  return {
+    claimAmount,
+    refundAmount,
+    claimInUSDC,
+  };
+};
+
+const calcBackstopTokens = (
+  bootstrap: BootstrapState,
+  backstopToken: BackstopToken,
+  depositDelta: number
+): { backstop_tokens: number; backstop_token_to_usdc: number } => {
+  const cur_backstop_tokens = Number(bootstrap.data.total_backstop_tokens) / 1e7;
+  if (
+    bootstrap.status === BootstrapStatus.Completed ||
+    bootstrap.status === BootstrapStatus.Cancelled
+  ) {
+    return {
+      backstop_tokens: cur_backstop_tokens,
+      backstop_token_to_usdc: backstopToken.lpTokenPrice,
+    };
+  }
+
+  // estimate LP tokens minted during close
+  const bootstrapIndex = bootstrap.config.token_index;
+  const pairIndex = 1 ^ bootstrapIndex;
+
+  const cometBalances = [Number(backstopToken.blnd) / 1e7, Number(backstopToken.usdc) / 1e7];
+  const cometWeights = [0.8, 0.2];
+  const cometShares = Number(backstopToken.shares) / 1e7;
+
+  const totalPairBalance = Number(bootstrap.data.pair_amount) / 1e7 + depositDelta;
+  const totalBootstrapBalance = Number(bootstrap.data.bootstrap_amount) / 1e7;
+  let pairBalance = totalPairBalance;
+  let bootstrapBalance = totalBootstrapBalance;
+  let mintedBackstopTokens = 0;
+
+  // estimate join amount
+  const pairJoinAmount = (pairBalance / cometBalances[pairIndex]) * cometShares;
+  const bootstrapJoinAmount = (bootstrapBalance / cometBalances[bootstrapIndex]) * cometShares;
+
+  if (pairJoinAmount > bootstrapJoinAmount) {
+    // bootstrap side is the limiting factor
+    mintedBackstopTokens += bootstrapJoinAmount;
+    bootstrapBalance = 0;
+    pairBalance = Math.max(
+      pairBalance - (bootstrapJoinAmount / cometShares) * cometBalances[pairIndex],
+      0
+    );
+    // single sided deposit the rest of the pair tokens
+    mintedBackstopTokens += calcSingleSidedDeposit(
+      pairIndex,
+      pairBalance,
+      cometBalances,
+      cometWeights,
+      cometShares
+    );
+    pairBalance = 0;
+  } else {
+    // pair side is the limiting factor
+    mintedBackstopTokens += pairJoinAmount;
+    pairBalance = 0;
+    bootstrapBalance = Math.max(
+      bootstrapBalance - (pairJoinAmount / cometShares) * cometBalances[bootstrapIndex],
+      0
+    );
+
+    // single sided deposit the rest of the bootstrap tokens
+    mintedBackstopTokens += calcSingleSidedDeposit(
+      bootstrapIndex,
+      bootstrapBalance,
+      cometBalances,
+      cometWeights,
+      cometShares
+    );
+    bootstrapBalance = 0;
+  }
+  // index 1 is USDC
+  const lpUSDCTotal =
+    pairIndex === 1
+      ? totalPairBalance + cometBalances[pairIndex]
+      : totalBootstrapBalance + cometBalances[bootstrapIndex];
+  const lpTokenToUSDC = (lpUSDCTotal * 5) / (cometShares + mintedBackstopTokens);
+  return {
+    backstop_tokens: cur_backstop_tokens + mintedBackstopTokens,
+    backstop_token_to_usdc: lpTokenToUSDC,
+  };
+};
+
+const calcSingleSidedDeposit = (
+  tokenIndex: number,
+  amount: number,
+  cometBalances: number[],
+  cometWeights: number[],
+  cometShares: number
+): number => {
+  const weighted_fee = (1.0 - cometWeights[tokenIndex]) * 0.003;
+  const amount_net_fees = amount * (1.0 - weighted_fee);
+
+  const ratio = 1.0 + amount_net_fees / cometBalances[tokenIndex];
+  const weighted_ratio = Math.pow(ratio, cometWeights[tokenIndex]) - 1.0;
+  return cometShares * weighted_ratio;
 };
 
 /***** Display ******/

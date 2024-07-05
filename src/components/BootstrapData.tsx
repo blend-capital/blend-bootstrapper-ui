@@ -3,7 +3,7 @@ import { useSearchParams } from 'react-router-dom';
 import { useBootstrapper } from '../hooks/bootstrapContext';
 import { useWallet } from '../hooks/wallet';
 import { BootstrapProps } from '../types';
-import { calculateClaimAmount, displayBootstrapStatus } from '../utils/bootstrapper';
+import { calculateOutput, displayBootstrapStatus } from '../utils/bootstrapper';
 import { buildStellarExpertLink, formatAddress, formatNumber } from '../utils/formatter';
 import { getRpc } from '../utils/rpc';
 import Container from './common/Container';
@@ -55,7 +55,7 @@ export function BootstrapData({ id }: BootstrapProps) {
     (Number(cometBalances[bootstrapIndex]) / cometWeights[bootstrapIndex]);
 
   // estimate claim amount
-  const estClaimAmount = calculateClaimAmount(
+  const estOutput = calculateOutput(
     bootstrap,
     backstopToken,
     0,
@@ -222,12 +222,10 @@ export function BootstrapData({ id }: BootstrapProps) {
             >
               <p style={{ paddingLeft: '10px', paddingRight: '10px' }}>
                 {`Est. Backstop Deposit: ${
-                  estClaimAmount !== undefined && Number.isFinite(estClaimAmount)
-                    ? estClaimAmount.toFixed(4)
-                    : '--'
+                  Number.isFinite(estOutput.claimAmount) ? estOutput.claimAmount.toFixed(4) : '--'
                 } BLND-USDC LP ${
-                  estClaimAmount !== undefined && Number.isFinite(estClaimAmount)
-                    ? '(~' + (estClaimAmount * backstopToken.lpTokenPrice).toFixed(2) + ' USDC)'
+                  Number.isFinite(estOutput.claimInUSDC)
+                    ? '(~' + estOutput.claimInUSDC.toFixed(2) + ' USDC)'
                     : ''
                 }`}
               </p>

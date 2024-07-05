@@ -2,11 +2,7 @@ import { useState } from 'react';
 import { useBootstrapper } from '../hooks/bootstrapContext';
 import { useWallet } from '../hooks/wallet';
 import { BootstrapProps } from '../types';
-import {
-  BootstrapStatus,
-  calculateClaimAmount,
-  displayBootstrapStatus,
-} from '../utils/bootstrapper';
+import { BootstrapStatus, calculateOutput, displayBootstrapStatus } from '../utils/bootstrapper';
 import { formatNumber, scaleNumber } from '../utils/formatter';
 import Container from './common/Container';
 import LabeledInput from './common/LabeledInput';
@@ -97,7 +93,7 @@ export function JoinBootstrap({ id }: BootstrapProps) {
     cometWeights[pairIndex] /
     (Number(bootstrap.data.bootstrap_amount) / cometWeights[bootstrapIndex]);
 
-  const newClaimEstAmount = calculateClaimAmount(
+  const newEstOutput = calculateOutput(
     bootstrap,
     backstopToken,
     scaledAmount / 1e7,
@@ -162,7 +158,7 @@ export function JoinBootstrap({ id }: BootstrapProps) {
               marginTop: '-5px',
             }}
           >
-            {`Est. Backstop Deposit: ${newClaimEstAmount} BLND-USDC LP`}
+            {`Est. Backstop Deposit: ${newEstOutput.claimAmount.toFixed(4)} BLND-USDC LP`}
           </p>
           <p
             style={{

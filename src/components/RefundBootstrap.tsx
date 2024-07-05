@@ -1,62 +1,16 @@
-import { SorobanRpc, scValToNative } from '@stellar/stellar-sdk';
-import { useEffect, useState } from 'react';
 import { useBootstrapper } from '../hooks/bootstrapContext';
 import { useWallet } from '../hooks/wallet';
 import { BootstrapProps } from '../types';
-import { BootstrapStatus, displayBootstrapStatus } from '../utils/bootstrapper';
-import { formatNumber } from '../utils/formatter';
-import { ContractErrorType, parseError } from '../utils/responseParser';
+import { BootstrapStatus, calculateOutput, displayBootstrapStatus } from '../utils/bootstrapper';
 import Container from './common/Container';
 import { default as Paper } from './common/Paper';
 
 export function RefundBootstrap({ id }: BootstrapProps) {
-  const { bootstraps, loadBootstrap } = useBootstrapper();
+  const { bootstraps, backstopToken, loadBootstrap } = useBootstrapper();
 
-  const { submitRefundBootstrap, simRefundBootstrap, connect, connected, walletAddress } =
-    useWallet();
+  const { submitRefundBootstrap, connect, connected, walletAddress } = useWallet();
 
   const bootstrap = bootstraps.get(id);
-
-  const [refundMessage, setRefundMessage] = useState<string | undefined>(undefined);
-
-  useEffect(() => {
-    if (
-      bootstrap !== undefined &&
-      walletAddress !== '' &&
-      refundMessage === undefined &&
-      bootstrap.status === BootstrapStatus.Cancelled &&
-      bootstrap.userDeposit.amount !== BigInt(0) &&
-      bootstrap.userDeposit.refunded === false
-    ) {
-      console.log('Sim refund bootstrap');
-      simRefundBootstrap(id).then((result) => {
-        if (SorobanRpc.Api.isSimulationSuccess(result)) {
-          if (result.result?.retval !== undefined) {
-            const as_bigint = scValToNative(result.result.retval) as bigint;
-            const as_string = formatNumber(as_bigint, 7);
-            setRefundMessage(as_string);
-          } else {
-            setRefundMessage('Failed to calculate refund amount.');
-          }
-        } else {
-          const error = parseError(result);
-          if (error.type === ContractErrorType.AlreadyRefundedError) {
-            setRefundMessage('Already refunded.');
-          } else if (error.type === ContractErrorType.InvalidBootstrapStatus) {
-            setRefundMessage('Unable to refund.');
-          } else {
-            setRefundMessage(`Refund failed: ${error.type}`);
-          }
-        }
-      });
-    } else if (bootstrap !== undefined) {
-      if (bootstrap.userDeposit.refunded === true) {
-        setRefundMessage('Already refunded.');
-      } else if (bootstrap.userDeposit.amount === BigInt(0)) {
-        setRefundMessage('No deposit recorded in this bootstrap.');
-      }
-    }
-  }, [walletAddress, bootstrap, refundMessage, id, simRefundBootstrap]);
 
   if (bootstrap === undefined) {
     return <>Loading...</>;
@@ -89,6 +43,25 @@ export function RefundBootstrap({ id }: BootstrapProps) {
   }
 
   const pairTokenSymbol = bootstrap.config.token_index === 1 ? 'BLND' : 'USDC';
+
+  const estOutput = calculateOutput(
+    bootstrap,
+    backstopToken,
+    0,
+    bootstrap.config.bootstrapper === walletAddress
+  );
+
+  let refundMessage = '';
+  if (bootstrap.userDeposit.claimed === true) {
+    refundMessage = 'Already refunded.';
+  } else if (bootstrap.userDeposit.amount === BigInt(0)) {
+    refundMessage = 'No deposit recorded in this bootstrap.';
+  } else if (Number.isFinite(estOutput.refundAmount)) {
+    refundMessage = estOutput.refundAmount.toFixed(4);
+  } else {
+    refundMessage = 'Failed to determine refund amount.';
+  }
+
   const isRefundMessageNumber = refundMessage !== undefined && !isNaN(Number(refundMessage));
 
   return (

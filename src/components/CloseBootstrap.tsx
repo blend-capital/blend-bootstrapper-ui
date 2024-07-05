@@ -50,7 +50,7 @@ export function CloseBootstrap({ id }: BootstrapProps) {
         paddingBottom: '15px',
       }}
     >
-      <h2 style={{ marginBottom: '0px' }}>Close Bootstrap</h2>
+      <h2>Close Bootstrap</h2>
       {connected ? (
         <button onClick={() => submitTx()}>Submit</button>
       ) : (
