@@ -8,7 +8,7 @@ import fs from 'fs';
  */
 
 const env = {
-  production: 'production',
+  mainnet: 'mainnet',
   testnet: 'testnet',
 };
 

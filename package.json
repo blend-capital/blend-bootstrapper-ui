@@ -1,12 +1,12 @@
 {
   "name": "blend-bootstrapper-ui",
   "private": true,
-  "version": "0.0.0",
+  "version": "1.0.0",
   "type": "module",
   "scripts": {
     "dev": "vite",
     "build": "tsc && vite build",
-    "build:mainnet": "TARGET_ENV=production node loadEnv.js && vite build",
+    "build:mainnet": "TARGET_ENV=mainnet node loadEnv.js && vite build",
     "build:testnet": "TARGET_ENV=testnet node loadEnv.js && vite build",
     "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
     "preview": "vite preview"
@@ -14,9 +14,9 @@
   "dependencies": {
     "@creit.tech/stellar-wallets-kit": "^0.9.0",
     "@stellar/stellar-sdk": "12.1.0",
-    "next": "14.0.4",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
+    "react-router-dom": "^6.24.0",
     "vite-plugin-svgr": "^4.2.0"
   },
   "devDependencies": {

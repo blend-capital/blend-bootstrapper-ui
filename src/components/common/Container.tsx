@@ -1,19 +1,16 @@
 import React from 'react';
 
-type ContainerProps = {
+export type ContainerProps = {
   children: React.ReactNode;
+  className?: string | undefined;
   sx?: React.CSSProperties;
 };
 
-function Container({ children, sx }: ContainerProps) {
+function Container({ children, className, sx }: ContainerProps) {
   return (
     <div
+      className={`container${className ? ' ' + className : ''}`}
       style={{
-        display: 'flex',
-        flexWrap: 'wrap',
-        padding: '10px',
-        marginTop: '5px',
-        marginBottom: '5px',
         ...sx,
       }}
     >

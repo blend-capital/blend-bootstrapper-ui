@@ -25,7 +25,7 @@ function LabeledInput({
     const val = e.target.value;
 
     if (type === 'number' && val !== '') {
-      const sanitizedValue = val.replace(/[^0-9.\.]/gi, '');
+      const sanitizedValue = val.replace(/[^0-9..]/gi, '');
 
       onChange(sanitizedValue);
     } else {
