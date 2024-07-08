@@ -35,6 +35,19 @@ function App() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [walletAddress, num_id]);
 
+  const handleShowMore = () => {
+    const lastShown = idsToRender[idsToRender.length - 1];
+    if (lastShown <= 0) {
+      return;
+    }
+
+    const newIdsToRender = [];
+    for (let i = lastShown - 1; i >= 0 && newIdsToRender.length < 3; i--) {
+      newIdsToRender.push(i);
+    }
+    setIdsToRender([...idsToRender, ...newIdsToRender]);
+  };
+
   return (
     <div className="app-container">
       <NavBar />
@@ -61,6 +74,17 @@ function App() {
             {idsToRender.map((id) => (
               <BootstrapPreview key={id} id={id} />
             ))}
+            {idsToRender[idsToRender.length - 1] !== 0 && (
+              <Container
+                sx={{
+                  width: '100%',
+                  justifyContent: 'center',
+                  alignItems: 'center',
+                }}
+              >
+                <button onClick={handleShowMore}>Show More</button>
+              </Container>
+            )}
           </Container>
         )}
         <TxStatusOverlay />
