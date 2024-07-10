@@ -90,9 +90,7 @@ export function ClaimBootstrap({ id }: BootstrapProps) {
               color: '#FDDC5C',
             }}
           >
-            The backstop deposit is an estimate and is subject to change with the amount of pair
-            tokens deposited. Tokens will be claimable after the bootstrap period ends. Claimed
-            tokens will be deposited directly into the pool's backstop.
+            Claimed tokens will be deposited directly into the pool's backstop.
           </p>
         </Container>
       ) : (
