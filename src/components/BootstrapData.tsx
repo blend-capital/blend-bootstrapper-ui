@@ -11,8 +11,10 @@ import { LinkedText } from './common/LinkedText';
 import Paper from './common/Paper';
 
 export function BootstrapData({ id }: BootstrapProps) {
-  const { bootstraps, backstopToken, loadBootstrap } = useBootstrapper();
+  const { bootstraps, backstopToken, backstopDepositLPTokens, loadBootstrap } = useBootstrapper();
   const { walletAddress } = useWallet();
+
+  const bootstrapAddress = import.meta.env.VITE_BOOTSTRAPPER_ADDRESS;
 
   const [, setSearchParams] = useSearchParams();
 
@@ -62,6 +64,10 @@ export function BootstrapData({ id }: BootstrapProps) {
     walletAddress === bootstrap.config.bootstrapper
   );
 
+  // find backstop deposit values
+  const backstopDeposit = backstopDepositLPTokens.get(bootstrap.config.pool) ?? 0;
+  const estBackstopDeposit = backstopDeposit + estOutput.claimAmount;
+
   return (
     <Container sx={{ display: 'flex', flexDirection: 'column', flexWrap: 'wrap' }}>
       <Container
@@ -74,6 +80,16 @@ export function BootstrapData({ id }: BootstrapProps) {
         </Paper>
         <Paper sx={{ margin: '0px', alignItems: 'center', height: '28px', boxShadow: 'none' }}>
           Current ledger: {currentLedger}
+        </Paper>
+        <Paper sx={{ margin: '0px', alignItems: 'center', height: '28px', boxShadow: 'none' }}>
+          <LinkedText
+            text={``}
+            link={buildStellarExpertLink(bootstrapAddress)}
+            sx={{
+              marginTop: '0px',
+              marginBottom: '0px',
+            }}
+          />
         </Paper>
       </Container>
       <h3>Bootstrap Config</h3>
@@ -218,18 +234,71 @@ export function BootstrapData({ id }: BootstrapProps) {
                 flexDirection: 'row',
                 justifyContent: 'center',
                 flexWrap: 'wrap',
+                marginBottom: '-15px',
               }}
             >
               <p style={{ paddingLeft: '10px', paddingRight: '10px' }}>
-                {`Est. Backstop Deposit: ${
-                  Number.isFinite(estOutput.claimAmount) ? estOutput.claimAmount.toFixed(4) : '--'
-                } BLND-USDC LP ${
-                  Number.isFinite(estOutput.claimInUSDC)
-                    ? '(~' + estOutput.claimInUSDC.toFixed(2) + ' USDC)'
-                    : ''
-                }`}
+                Current Backstop Balance: {backstopDeposit.toFixed(4)} BLND-USDC LP
               </p>
             </Container>
+            {bootstrap.userDeposit.claimed ? (
+              <Container
+                sx={{
+                  display: 'flex',
+                  flexDirection: 'row',
+                  justifyContent: 'center',
+                  flexWrap: 'wrap',
+                }}
+              >
+                <p style={{ paddingLeft: '10px', paddingRight: '10px' }}>
+                  {`Claimed Backstop Deposit: ${
+                    Number.isFinite(estOutput.claimAmount) ? estOutput.claimAmount.toFixed(4) : '--'
+                  } BLND-USDC LP ${
+                    Number.isFinite(estOutput.claimInUSDC)
+                      ? '(~' + estOutput.claimInUSDC.toFixed(2) + ' USDC)'
+                      : ''
+                  }`}
+                </p>
+              </Container>
+            ) : (
+              <>
+                <Container
+                  sx={{
+                    display: 'flex',
+                    flexDirection: 'row',
+                    justifyContent: 'center',
+                    flexWrap: 'wrap',
+                    marginBottom: '-15px',
+                  }}
+                >
+                  <p style={{ paddingLeft: '10px', paddingRight: '10px' }}>
+                    {`Est. Claim Backstop Deposit: ${
+                      Number.isFinite(estOutput.claimAmount)
+                        ? estOutput.claimAmount.toFixed(4)
+                        : '--'
+                    } BLND-USDC LP ${
+                      Number.isFinite(estOutput.claimInUSDC)
+                        ? '(~' + estOutput.claimInUSDC.toFixed(2) + ' USDC)'
+                        : ''
+                    }`}
+                  </p>
+                </Container>
+                <Container
+                  sx={{
+                    display: 'flex',
+                    flexDirection: 'row',
+                    justifyContent: 'center',
+                    flexWrap: 'wrap',
+                  }}
+                >
+                  <p style={{ paddingLeft: '10px', paddingRight: '10px' }}>
+                    Est. Final Backstop Balance:{' '}
+                    {isFinite(estBackstopDeposit) ? estBackstopDeposit.toFixed(4) : '--'} BLND-USDC
+                    LP
+                  </p>
+                </Container>
+              </>
+            )}
           </Paper>
         </>
       )}

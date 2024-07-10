@@ -20,13 +20,15 @@ export function LinkedText({ text, link, sx }: LinkedTextProps) {
           ...sx,
         }}
       >
-        <p
-          style={{
-            wordBreak: 'break-all',
-          }}
-        >
-          {text}
-        </p>
+        {text !== '' && (
+          <p
+            style={{
+              wordBreak: 'break-all',
+            }}
+          >
+            {text}
+          </p>
+        )}
         <svg xmlns="http://www.w3.org/2000/svg" height="18px" viewBox="0 -960 960 960" width="18px">
           <path
             fill="currentColor"

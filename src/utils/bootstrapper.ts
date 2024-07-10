@@ -1,7 +1,7 @@
 import { Contract, Operation, contract, xdr } from '@stellar/stellar-sdk';
 import { Buffer } from 'buffer';
 import { BootstrapState } from '../types';
-import { BackstopToken } from './backstopToken';
+import { BackstopToken } from './backstop';
 
 if (typeof window !== 'undefined') {
   window.Buffer = window.Buffer || Buffer;

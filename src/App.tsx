@@ -74,7 +74,7 @@ function App() {
             {idsToRender.map((id) => (
               <BootstrapPreview key={id} id={id} />
             ))}
-            {idsToRender[idsToRender.length - 1] !== 0 && (
+            {idsToRender.length !== 0 && idsToRender[idsToRender.length - 1] !== 0 && (
               <Container
                 sx={{
                   width: '100%',
