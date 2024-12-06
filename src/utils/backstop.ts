@@ -1,4 +1,4 @@
-import { Address, SorobanRpc, scValToNative, xdr } from '@stellar/stellar-sdk';
+import { Address, rpc, scValToNative, xdr } from '@stellar/stellar-sdk';
 import { Network } from './rpc';
 
 function decodeEntryKey(entryKey: xdr.ScVal): string {
@@ -61,7 +61,7 @@ export class BackstopToken {
     blndTkn: string,
     usdcTkn: string
   ): Promise<BackstopToken> {
-    const rpc = new SorobanRpc.Server(network.rpc, network.opts);
+    const stellarRpc = new rpc.Server(network.rpc, network.opts);
     const recordDataKey = xdr.LedgerKey.contractData(
       new xdr.LedgerKeyContractData({
         contract: Address.fromString(id).toScAddress(),
@@ -76,7 +76,7 @@ export class BackstopToken {
         durability: xdr.ContractDataDurability.persistent(),
       })
     );
-    const ledgerEntriesResp = await rpc.getLedgerEntries(recordDataKey, totalSharesKey);
+    const ledgerEntriesResp = await stellarRpc.getLedgerEntries(recordDataKey, totalSharesKey);
     let blnd: bigint | undefined;
     let usdc: bigint | undefined;
     let totalShares: bigint | undefined;
@@ -134,10 +134,10 @@ export class UserBalance {
     poolId: string,
     userId: string
   ): Promise<UserBalance> {
-    const rpc = new SorobanRpc.Server(network.rpc, network.opts);
+    const stellarRpc = new rpc.Server(network.rpc, network.opts);
 
     const ledgerKey = UserBalance.ledgerKey(backstopId, poolId, userId);
-    const ledgerEntryData = await rpc.getLedgerEntries(ledgerKey);
+    const ledgerEntryData = await stellarRpc.getLedgerEntries(ledgerKey);
     if (ledgerEntryData.entries.length == 0) {
       return new UserBalance(0n, [], 0n, 0n);
     }
@@ -247,10 +247,10 @@ export class PoolBalance {
     backstopId: string,
     poolId: string
   ): Promise<PoolBalance> {
-    const rpc = new SorobanRpc.Server(network.rpc, network.opts);
+    const stellarRpc = new rpc.Server(network.rpc, network.opts);
 
     const ledgerKey = PoolBalance.ledgerKey(backstopId, poolId);
-    const ledgerEntryData = await rpc.getLedgerEntries(ledgerKey);
+    const ledgerEntryData = await stellarRpc.getLedgerEntries(ledgerKey);
     if (ledgerEntryData.entries.length == 0) {
       return new PoolBalance(0n, 0n, 0n);
     }

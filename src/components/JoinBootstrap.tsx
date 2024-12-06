@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { rpc } from '@stellar/stellar-sdk';
+import { useEffect, useState } from 'react';
 import { useBootstrapper } from '../hooks/bootstrapContext';
 import { useWallet } from '../hooks/wallet';
 import { BootstrapProps } from '../types';
@@ -10,37 +11,43 @@ import { default as Paper } from './common/Paper';
 
 export function JoinBootstrap({ id }: BootstrapProps) {
   const { bootstraps, backstopToken, loadBootstrap } = useBootstrapper();
-  const { submitJoinBootstrap, connected, connect, walletAddress } = useWallet();
+  const { submitJoinBootstrap, simJoinBootstrap, restore, connected, connect, walletAddress } =
+    useWallet();
 
   const [amount, setAmount] = useState<string | undefined>(undefined);
+  const [restoreResult, setRestoreResult] = useState<
+    rpc.Api.SimulateTransactionRestoreResponse | undefined
+  >(undefined);
 
   const bootstrap = bootstraps.get(id);
+  const isValidBootstrap = !!bootstrap && bootstrap.status === BootstrapStatus.Active;
+
+  useEffect(() => {
+    const simExit = async () => {
+      if (
+        isValidBootstrap &&
+        connected &&
+        walletAddress !== '' &&
+        bootstrap.userPairTokenBalance > BigInt(0)
+      ) {
+        const simResult = await simJoinBootstrap(id, BigInt(1));
+        if (rpc.Api.isSimulationRestore(simResult)) {
+          setRestoreResult(simResult);
+        } else {
+          setRestoreResult(undefined);
+        }
+      } else {
+        setRestoreResult(undefined);
+      }
+    };
+    simExit();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [walletAddress, connected, bootstrap]);
 
   if (bootstrap === undefined || backstopToken === undefined) {
     loadBootstrap(id, true);
     return <>Loading...</>;
   }
-
-  // useEffect(() => {
-  //   if (bootstrap && bootstrapperConfig && amount && cometBalances && cometTotalSupply) {
-  //     const scaledAmount = parseInt(scaleNumber(amount));
-  //     const bootstrapIndex = bootstrap.config.token_index;
-  //     const pairTokenIndex = 1 ^ bootstrapIndex;
-  //     const bootstrapTokenData = bootstrapperConfig.cometTokenData[bootstrapIndex];
-  //     const pairTokenData = bootstrapperConfig.cometTokenData[pairTokenIndex];
-
-  //     const newPairAmount = Number(bootstrap.data.pair_amount) + scaledAmount;
-
-  //     setNewSpotPrice(
-  //       newPairAmount /
-  //         (pairTokenData.weight / 100) /
-  //         (Number(bootstrap.data.bootstrap_amount) / (bootstrapTokenData.weight / 100))
-  //     );
-
-  //     const amountToClaim = calculateClaimAmount(scaledAmount);
-  //     setClaimAmount(amountToClaim ? formatNumber(amountToClaim) : undefined);
-  //   }
-  // }, [cometBalances, bootstrap, id, amount, cometTotalSupply]);
 
   function submitTx() {
     if (id != undefined && amount && connected) {
@@ -48,6 +55,14 @@ export function JoinBootstrap({ id }: BootstrapProps) {
         if (success) {
           loadBootstrap(id, true);
         }
+      });
+    }
+  }
+
+  function submitRestoreTx() {
+    if (restoreResult != undefined && amount && connected) {
+      restore(restoreResult).then(() => {
+        loadBootstrap(id, true);
       });
     }
   }
@@ -68,7 +83,6 @@ export function JoinBootstrap({ id }: BootstrapProps) {
     );
   }
 
-  const isValidBootstrap = !!bootstrap && bootstrap.status === BootstrapStatus.Active;
   const isAmountValidDecimals = amount !== undefined && (amount.split('.')[1]?.length ?? 0) <= 7;
   const scaledAmount =
     amount !== undefined && isAmountValidDecimals ? Number(scaleNumber(amount)) : 0;
@@ -174,9 +188,15 @@ export function JoinBootstrap({ id }: BootstrapProps) {
         </Container>
       )}
       {connected ? (
-        <button onClick={() => submitTx()} disabled={!isValidAmount || !isValidBootstrap}>
-          Submit
-        </button>
+        restoreResult === undefined ? (
+          <button onClick={() => submitTx()} disabled={!isValidAmount || !isValidBootstrap}>
+            Submit
+          </button>
+        ) : (
+          <button className={'restore-button'} onClick={() => submitRestoreTx()}>
+            Restore Data
+          </button>
+        )
       ) : (
         <button onClick={() => connect()}>Connect Wallet</button>
       )}

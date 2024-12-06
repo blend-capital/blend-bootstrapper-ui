@@ -1,4 +1,4 @@
-import { SorobanRpc } from '@stellar/stellar-sdk';
+import { rpc } from '@stellar/stellar-sdk';
 import React, { ReactNode, useContext, useState } from 'react';
 
 import { BootstrapState } from '../types';
@@ -49,7 +49,7 @@ export const BootstrapProvider = ({ children }: BootstrapProviderProps) => {
     const bootstrapper = new BootstrapClient(bootstrapperId);
     const lastIdOp = bootstrapper.get_next_id();
     const sim = await simulateOperation(lastIdOp);
-    if (SorobanRpc.Api.isSimulationSuccess(sim) && sim.result?.retval != undefined) {
+    if (rpc.Api.isSimulationSuccess(sim) && sim.result?.retval != undefined) {
       const lastId = parsers.get_next_id(sim.result.retval) - 1;
       setLastId(lastId);
       return lastId;
@@ -76,7 +76,7 @@ export const BootstrapProvider = ({ children }: BootstrapProviderProps) => {
       const bootstrapper = new BootstrapClient(bootstrapperId);
       const bootstrapOp = bootstrapper.get_bootstrap({ id: id });
       const sim = await simulateOperation(bootstrapOp);
-      if (SorobanRpc.Api.isSimulationSuccess(sim) && sim.result?.retval != undefined) {
+      if (rpc.Api.isSimulationSuccess(sim) && sim.result?.retval != undefined) {
         const bootstrap = parsers.get_bootstrap(sim.result.retval);
         let backstopPool = backstopPools.get(bootstrap.config.pool);
         if (refreshBackstop || backstopPool === undefined) {
@@ -132,7 +132,7 @@ export const BootstrapProvider = ({ children }: BootstrapProviderProps) => {
       const bootstrapper = new BootstrapClient(bootstrapperId);
       const bootstrapOp = bootstrapper.get_deposit({ id: id, user: userId });
       const sim = await simulateOperation(bootstrapOp);
-      if (SorobanRpc.Api.isSimulationSuccess(sim) && sim.result?.retval != undefined) {
+      if (rpc.Api.isSimulationSuccess(sim) && sim.result?.retval != undefined) {
         const deposit = parsers.get_deposit(sim.result.retval);
         return deposit;
       } else {

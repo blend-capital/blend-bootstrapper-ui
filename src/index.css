@@ -28,6 +28,8 @@
   --secondary-color-opaque: #E16BFF26;
   --error-color: #ff3366;
   --error-color-opaque: #ff336626;
+  --warning-color: #FFCB00;
+  --warning-color-opaque: #FFCB0026;
 }
 
 body {
@@ -130,6 +132,11 @@ button.disconnect-button {
 }
 button.disconnect-button:hover {
   color: white;
+}
+
+button.restore-button {
+  background-color: var(--warning-color-opaque);
+  color: var(--warning-color);
 }
 
 input[type='radio'] {

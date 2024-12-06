@@ -1,12 +1,12 @@
-import { Account, BASE_FEE, SorobanRpc, TransactionBuilder, xdr } from '@stellar/stellar-sdk';
+import { Account, BASE_FEE, rpc, TransactionBuilder, xdr } from '@stellar/stellar-sdk';
 import { getNetwork, getRpc } from './rpc';
 
 export async function simulateOperation(
   operation: xdr.Operation,
   account?: Account | undefined
-): Promise<SorobanRpc.Api.SimulateTransactionResponse> {
+): Promise<rpc.Api.SimulateTransactionResponse> {
   try {
-    const rpc = getRpc();
+    const stellarRpc = getRpc();
     const network = getNetwork();
     const sourceAccount =
       account ?? new Account('GAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAWHF', '1');
@@ -19,11 +19,11 @@ export async function simulateOperation(
       },
     }).addOperation(operation);
     const transaction = tx_builder.build();
-    const simulation = await rpc.simulateTransaction(transaction);
+    const simulation = await stellarRpc.simulateTransaction(transaction);
     return simulation;
   } catch (e) {
     console.error('Unable to simulate operation: ', e);
-    const temp_error: SorobanRpc.Api.SimulateTransactionErrorResponse = {
+    const temp_error: rpc.Api.SimulateTransactionErrorResponse = {
       error: 'Unkown',
       events: [],
       id: '0',

@@ -1,3 +1,5 @@
+import { rpc } from '@stellar/stellar-sdk';
+import { useEffect, useState } from 'react';
 import { useBootstrapper } from '../hooks/bootstrapContext';
 import { useWallet } from '../hooks/wallet';
 import { BootstrapProps } from '../types';
@@ -8,9 +10,37 @@ import { default as Paper } from './common/Paper';
 export function RefundBootstrap({ id }: BootstrapProps) {
   const { bootstraps, backstopToken, loadBootstrap } = useBootstrapper();
 
-  const { submitRefundBootstrap, connect, connected, walletAddress } = useWallet();
+  const { submitRefundBootstrap, simRefundBootstrap, restore, connect, connected, walletAddress } =
+    useWallet();
+
+  const [restoreResult, setRestoreResult] = useState<
+    rpc.Api.SimulateTransactionRestoreResponse | undefined
+  >(undefined);
 
   const bootstrap = bootstraps.get(id);
+  const isValidBootstrap = !!bootstrap && bootstrap.status === BootstrapStatus.Cancelled;
+
+  useEffect(() => {
+    const simExit = async () => {
+      if (
+        isValidBootstrap &&
+        connected &&
+        walletAddress !== '' &&
+        bootstrap.userDeposit.amount > BigInt(0)
+      ) {
+        const simResult = await simRefundBootstrap(id);
+        if (rpc.Api.isSimulationRestore(simResult)) {
+          setRestoreResult(simResult);
+        } else {
+          setRestoreResult(undefined);
+        }
+      } else {
+        setRestoreResult(undefined);
+      }
+    };
+    simExit();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [walletAddress, connected, bootstrap]);
 
   if (bootstrap === undefined) {
     return <>Loading...</>;
@@ -38,6 +68,14 @@ export function RefundBootstrap({ id }: BootstrapProps) {
         if (success) {
           loadBootstrap(id, true);
         }
+      });
+    }
+  }
+
+  function submitRestoreTx() {
+    if (restoreResult != undefined && connected) {
+      restore(restoreResult).then(() => {
+        loadBootstrap(id, true);
       });
     }
   }
@@ -90,9 +128,15 @@ export function RefundBootstrap({ id }: BootstrapProps) {
         </>
       )}
       {connected ? (
-        <button onClick={() => submitTx()} disabled={!isRefundMessageNumber}>
-          Submit
-        </button>
+        restoreResult === undefined ? (
+          <button onClick={() => submitTx()} disabled={!isRefundMessageNumber}>
+            Submit
+          </button>
+        ) : (
+          <button className={'restore-button'} onClick={() => submitRestoreTx()}>
+            Restore Data
+          </button>
+        )
       ) : (
         <button onClick={() => connect()}>Connect Wallet</button>
       )}
