@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { rpc } from '@stellar/stellar-sdk';
+import { useEffect, useState } from 'react';
 import { useBootstrapper } from '../hooks/bootstrapContext';
 import { useWallet } from '../hooks/wallet';
 import { BootstrapProps } from '../types';
@@ -10,11 +11,38 @@ import { default as Paper } from './common/Paper';
 
 export function ExitBootstrap({ id }: BootstrapProps) {
   const { bootstraps, loadBootstrap, backstopToken } = useBootstrapper();
-  const { submitExitBootstrap, connected, walletAddress, connect } = useWallet();
+  const { submitExitBootstrap, simExitBootstrap, restore, connected, walletAddress, connect } =
+    useWallet();
 
   const [amount, setAmount] = useState<string | undefined>(undefined);
+  const [restoreResult, setRestoreResult] = useState<
+    rpc.Api.SimulateTransactionRestoreResponse | undefined
+  >(undefined);
 
   const bootstrap = bootstraps.get(id);
+  const isValidBootstrap = !!bootstrap && bootstrap.status === BootstrapStatus.Active;
+
+  useEffect(() => {
+    const simExit = async () => {
+      if (
+        isValidBootstrap &&
+        connected &&
+        walletAddress !== '' &&
+        bootstrap.userDeposit.amount > BigInt(0)
+      ) {
+        const simResult = await simExitBootstrap(id, bootstrap.userDeposit.amount);
+        if (rpc.Api.isSimulationRestore(simResult)) {
+          setRestoreResult(simResult);
+        } else {
+          setRestoreResult(undefined);
+        }
+      } else {
+        setRestoreResult(undefined);
+      }
+    };
+    simExit();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [walletAddress, connected, bootstrap]);
 
   if (bootstrap === undefined) {
     loadBootstrap(id, true);
@@ -47,7 +75,14 @@ export function ExitBootstrap({ id }: BootstrapProps) {
     }
   }
 
-  const isValidBootstrap = !!bootstrap && bootstrap.status === BootstrapStatus.Active;
+  function submitRestoreTx() {
+    if (restoreResult != undefined && amount && connected) {
+      restore(restoreResult).then(() => {
+        loadBootstrap(id, true);
+      });
+    }
+  }
+
   const isAmountValidDecimals = amount !== undefined && (amount.split('.')[1]?.length ?? 0) <= 7;
   const scaledAmount =
     amount !== undefined && isAmountValidDecimals ? Number(scaleNumber(amount)) : 0;
@@ -113,7 +148,6 @@ export function ExitBootstrap({ id }: BootstrapProps) {
         disabled={amount !== undefined && amount !== '' ? !isValidAmount : false}
         errorMessage={errorMessage}
       />
-
       {isValidAmount && (
         <Container sx={{ flexDirection: 'column', justifyContent: 'center', width: '60%' }}>
           <p
@@ -151,9 +185,15 @@ export function ExitBootstrap({ id }: BootstrapProps) {
         </Container>
       )}
       {connected ? (
-        <button onClick={() => submitTx()} disabled={!isValidAmount || !isValidBootstrap}>
-          Submit
-        </button>
+        restoreResult === undefined ? (
+          <button onClick={() => submitTx()} disabled={!isValidAmount || !isValidBootstrap}>
+            Submit
+          </button>
+        ) : (
+          <button className={'restore-button'} onClick={() => submitRestoreTx()}>
+            Restore Data
+          </button>
+        )
       ) : (
         <button onClick={() => connect()}>Connect Wallet</button>
       )}
