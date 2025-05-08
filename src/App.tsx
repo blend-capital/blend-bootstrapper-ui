@@ -57,7 +57,7 @@ function App() {
           flexDirection: 'column',
         }}
       >
-        <h1 style={{ marginBottom: '6px' }}>Backstop Bootstrapper</h1>
+        <h1 style={{ marginBottom: '6px' }}>Backstop V2 Bootstrapper</h1>
         {num_id !== undefined ? (
           <>
             <BootstrapData id={num_id} />
