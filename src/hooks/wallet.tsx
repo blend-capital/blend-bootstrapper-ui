@@ -146,8 +146,8 @@ export const WalletProvider = ({ children }: WalletProviderProps): JSX.Element =
       await walletKit.openModal({
         onWalletSelected: async (option: ISupportedWallet) => {
           walletKit.setWallet(option.id);
-          setAutoConnect(option.id);
           await handleSetWalletAddress();
+          setAutoConnect(option.id);
         },
       });
     } catch (e: any) {
@@ -240,15 +240,18 @@ export const WalletProvider = ({ children }: WalletProviderProps): JSX.Element =
       setFailureMessage(ContractErrorType[error.type]);
       setTxStatus(TxStatus.FAIL);
       return false;
-    }
+    } 
   }
 
   async function invokeSorobanOperation(operation: xdr.Operation): Promise<boolean> {
     try {
       const account = await stellarRpc.getAccount(walletAddress);
+
+      const feeStats = await stellarRpc.getFeeStats();
+      const fee = Math.max(parseInt(feeStats.sorobanInclusionFee.p90), 10000).toString();
       const tx_builder = new TransactionBuilder(account, {
         networkPassphrase: network.passphrase,
-        fee: BASE_FEE,
+        fee: fee,
         timebounds: {
           minTime: 0,
           maxTime: Math.floor(Date.now() / 1000) + 5 * 60 * 1000,
