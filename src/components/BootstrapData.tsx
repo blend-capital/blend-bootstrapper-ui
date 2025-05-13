@@ -3,7 +3,7 @@ import { useSearchParams } from 'react-router-dom';
 import { useBootstrapper } from '../hooks/bootstrapContext';
 import { useWallet } from '../hooks/wallet';
 import { BootstrapProps } from '../types';
-import { calculateOutput, displayBootstrapStatus } from '../utils/bootstrapper';
+import { BootstrapStatus, calculateOutput, displayBootstrapStatus } from '../utils/bootstrapper';
 import { buildStellarExpertLink, formatAddress, formatNumber } from '../utils/formatter';
 import { getRpc } from '../utils/rpc';
 import Container from './common/Container';
@@ -19,6 +19,7 @@ export function BootstrapData({ id }: BootstrapProps) {
   const [, setSearchParams] = useSearchParams();
 
   const [currentLedger, setCurrentLedger] = useState<number>(0);
+  const EST_BLOCK_TIME = 5500; // 5.5s in ms
 
   useEffect(() => {
     const update = async () => {
@@ -44,6 +45,15 @@ export function BootstrapData({ id }: BootstrapProps) {
   const cometWeights = [0.8, 0.2];
   const pairIndex = bootstrap.config.token_index ^ 1;
   const bootstrapIndex = bootstrap.config.token_index;
+
+  // assume block closed at the max time ago to avoid overestimating
+  const lastLedgerTime = Date.now() - EST_BLOCK_TIME;
+  const ledgersToGo = Math.max(bootstrap.config.close_ledger - currentLedger, 0);
+  const estCloseTime = lastLedgerTime + ledgersToGo * EST_BLOCK_TIME;
+  const estCloseDate = new Date(estCloseTime);
+  const timezone = Intl.DateTimeFormat('en', {
+    timeZoneName: 'short'
+  }).formatToParts(estCloseDate).find(part => part.type === 'timeZoneName')?.value;
 
   // spot price is pair tokens per bootstrap token
   const bootstrapSpotPrice =
@@ -171,6 +181,24 @@ export function BootstrapData({ id }: BootstrapProps) {
           <p style={{ paddingLeft: '10px', paddingRight: '10px' }}>
             Close Ledger: {Number(bootstrap.config.close_ledger)}
           </p>
+          {ledgersToGo > 0 && bootstrap.status === BootstrapStatus.Active &&
+            <p style={{ paddingLeft: '10px', paddingRight: '10px' }}>
+              Est. Close Time: {estCloseDate.toLocaleString() + ' ' + timezone}
+            </p>
+          }
+        </Container>
+        <Container
+          sx={{
+            display: 'flex',
+            flexDirection: 'row',
+            justifyContent: 'center',
+            flexWrap: 'wrap',
+            marginBottom: '-15px',
+          }}
+        >
+          <p style={{ paddingLeft: '10px', paddingRight: '10px' }}>
+            Bootstrap Amount: {formatNumber(bootstrap.data.bootstrap_amount)} {bootstrapTokenSymbol}
+          </p>
           <p style={{ paddingLeft: '10px', paddingRight: '10px' }}>
             Min. Pair Amount: {formatNumber(bootstrap.config.pair_min)} {pairTokenSymbol}
           </p>
@@ -183,9 +211,6 @@ export function BootstrapData({ id }: BootstrapProps) {
             flexWrap: 'wrap',
           }}
         >
-          <p style={{ paddingLeft: '10px', paddingRight: '10px' }}>
-            Bootstrap Amount: {formatNumber(bootstrap.data.bootstrap_amount)} {bootstrapTokenSymbol}
-          </p>
           <p style={{ paddingLeft: '10px', paddingRight: '10px' }}>
             Pair Token Amount: {formatNumber(bootstrap.data.pair_amount)} {pairTokenSymbol}
           </p>
